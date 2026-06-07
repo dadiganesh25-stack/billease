@@ -1,4 +1,3 @@
-require('dotenv').config();
 const express    = require('express');
 const cors       = require('cors');
 const bcrypt     = require('bcryptjs');
@@ -491,6 +490,251 @@ app.get('/api/admin/reports', auth, adminOnly, async (req, res) => {
   res.json({
     overall: buildReport(combined, { id:'platform', name:'All Clients', bizName:'Platform' }, { type, from, to }),
     perClient,
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SUPERMARKET MODULE
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ── SM PRODUCTS CRUD ─────────────────────────────────────────────────────────
+
+// GET all products (with filters)
+app.get('/api/sm/products', auth, async (req, res) => {
+  const cid = clientId(req);
+  let query = db.from('sm_products').select('*').eq('user_id', cid).eq('active', true).order('category').order('name');
+  if (req.query.category) query = query.eq('category', req.query.category);
+  if (req.query.item_type) query = query.eq('item_type', req.query.item_type);
+  if (req.query.search) query = query.ilike('name', `%${req.query.search}%`);
+  const { data, error } = await query;
+  if (error) return dbErr(res, error);
+  res.json(data);
+});
+
+// GET single product
+app.get('/api/sm/products/:id', auth, async (req, res) => {
+  const { data, error } = await db.from('sm_products').select('*')
+    .eq('id', req.params.id).eq('user_id', clientId(req)).single();
+  if (error || !data) return res.status(404).json({ error: 'Product not found' });
+  res.json(data);
+});
+
+// POST create product
+app.post('/api/sm/products', auth, async (req, res) => {
+  const cid = clientId(req);
+  const { name, category, emoji, item_type, unit, price_per_unit, stock_qty, low_stock_alert, barcode, brand, hsn_code, tax_rate } = req.body;
+  if (!name || !price_per_unit) return res.status(400).json({ error: 'name and price_per_unit required' });
+  const { data, error } = await db.from('sm_products').insert({
+    user_id: cid, name, category: category || 'General',
+    emoji: emoji || '🛒', item_type: item_type || 'packet',
+    unit: unit || 'pcs', price_per_unit: parseFloat(price_per_unit),
+    stock_qty: parseFloat(stock_qty) || 0,
+    low_stock_alert: parseFloat(low_stock_alert) || 5,
+    barcode: barcode || null, brand: brand || null,
+    hsn_code: hsn_code || null, tax_rate: parseFloat(tax_rate) || 0,
+  }).select().single();
+  if (error) return dbErr(res, error);
+  res.json({ success: true, product: data });
+});
+
+// PUT update product
+app.put('/api/sm/products/:id', auth, async (req, res) => {
+  const allowed = ['name','category','emoji','item_type','unit','price_per_unit','stock_qty','low_stock_alert','barcode','brand','hsn_code','tax_rate','active'];
+  const updates = {};
+  allowed.forEach(k => { if (req.body[k] !== undefined) updates[k] = req.body[k]; });
+  if (updates.price_per_unit) updates.price_per_unit = parseFloat(updates.price_per_unit);
+  if (updates.stock_qty !== undefined) updates.stock_qty = parseFloat(updates.stock_qty);
+  const { data, error } = await db.from('sm_products').update(updates)
+    .eq('id', req.params.id).eq('user_id', clientId(req)).select().single();
+  if (error) return dbErr(res, error);
+  res.json({ success: true, product: data });
+});
+
+// DELETE product (soft delete)
+app.delete('/api/sm/products/:id', auth, async (req, res) => {
+  const { error } = await db.from('sm_products').update({ active: false })
+    .eq('id', req.params.id).eq('user_id', clientId(req));
+  if (error) return dbErr(res, error);
+  res.json({ success: true });
+});
+
+// PATCH update stock quantity
+app.patch('/api/sm/products/:id/stock', auth, async (req, res) => {
+  const { delta, set_to } = req.body;
+  const { data: current } = await db.from('sm_products').select('stock_qty')
+    .eq('id', req.params.id).eq('user_id', clientId(req)).single();
+  if (!current) return res.status(404).json({ error: 'Not found' });
+  const newQty = set_to !== undefined ? parseFloat(set_to) : (parseFloat(current.stock_qty) + parseFloat(delta || 0));
+  const { data, error } = await db.from('sm_products').update({ stock_qty: Math.max(0, newQty) })
+    .eq('id', req.params.id).eq('user_id', clientId(req)).select().single();
+  if (error) return dbErr(res, error);
+  res.json({ success: true, product: data });
+});
+
+// GET categories list
+app.get('/api/sm/categories', auth, async (req, res) => {
+  const { data, error } = await db.from('sm_products').select('category')
+    .eq('user_id', clientId(req)).eq('active', true);
+  if (error) return dbErr(res, error);
+  const cats = [...new Set(data.map(r => r.category))].sort();
+  res.json(cats);
+});
+
+// GET low stock products
+app.get('/api/sm/low-stock', auth, async (req, res) => {
+  const { data, error } = await db.from('sm_products').select('*')
+    .eq('user_id', clientId(req)).eq('active', true);
+  if (error) return dbErr(res, error);
+  const low = data.filter(p => parseFloat(p.stock_qty) <= parseFloat(p.low_stock_alert));
+  res.json(low);
+});
+
+// ── SM BILLS ─────────────────────────────────────────────────────────────────
+
+async function nextSmBillNo(userId) {
+  const { data } = await db.from('sm_bill_sequences').select('next_no').eq('user_id', userId).single();
+  const no = data ? data.next_no : 1;
+  await db.from('sm_bill_sequences').upsert({ user_id: userId, next_no: no + 1 });
+  return no;
+}
+
+// GET all SM bills
+app.get('/api/sm/bills', auth, async (req, res) => {
+  const cid = clientId(req);
+  let query = db.from('sm_bills').select('*').eq('user_id', cid).order('no', { ascending: false });
+  if (req.query.from) query = query.gte('time', req.query.from + 'T00:00:00');
+  if (req.query.to)   query = query.lte('time', req.query.to   + 'T23:59:59');
+  const { data, error } = await query;
+  if (error) return dbErr(res, error);
+  res.json(data);
+});
+
+// GET single SM bill
+app.get('/api/sm/bills/:no', auth, async (req, res) => {
+  const { data, error } = await db.from('sm_bills').select('*')
+    .eq('no', req.params.no).eq('user_id', clientId(req)).single();
+  if (error || !data) return res.status(404).json({ error: 'Bill not found' });
+  res.json(data);
+});
+
+// POST create SM bill
+app.post('/api/sm/bills', auth, async (req, res) => {
+  const { cart, customer, phone, payMode, discount, discountType, discountVal, notes } = req.body;
+  if (!cart || !cart.length) return res.status(400).json({ error: 'cart required' });
+  const cid = clientId(req);
+  const { data: user } = await db.from('users').select('tax_enabled,tax_rate').eq('id', cid).single();
+
+  // Calculate totals (each item can have own tax_rate)
+  const subtotal = cart.reduce((s, c) => s + parseFloat(c.amount), 0);
+  const disc = Math.min(parseFloat(discount) || 0, subtotal);
+  const taxable = subtotal - disc;
+
+  // Use per-item tax if set, else store tax
+  let tax = 0;
+  if (user.tax_enabled) {
+    cart.forEach(item => {
+      const itemSubtotal = parseFloat(item.amount);
+      const ratio = subtotal > 0 ? itemSubtotal / subtotal : 0;
+      const taxableItem = taxable * ratio;
+      const rate = item.tax_rate > 0 ? item.tax_rate : user.tax_rate;
+      tax += taxableItem * (rate / 100);
+    });
+  }
+
+  const grand = taxable + tax;
+  const no = await nextSmBillNo(cid);
+
+  // Deduct stock for each item
+  for (const item of cart) {
+    if (item.product_id) {
+      await db.from('sm_products').rpc || await db.from('sm_products')
+        .select('stock_qty').eq('id', item.product_id).eq('user_id', cid).single()
+        .then(async ({ data: p }) => {
+          if (p) {
+            const newQty = Math.max(0, parseFloat(p.stock_qty) - parseFloat(item.qty));
+            await db.from('sm_products').update({ stock_qty: newQty })
+              .eq('id', item.product_id).eq('user_id', cid);
+          }
+        });
+    }
+  }
+
+  const { data, error } = await db.from('sm_bills').insert({
+    no, user_id: cid, customer: customer || 'Walk-in',
+    phone: phone || '', cart, subtotal, discount: disc,
+    tax, grand_total: grand, pay_mode: payMode || 'Cash',
+    discount_type: discountType || 'flat', discount_val: discountVal || 0,
+    notes: notes || '',
+  }).select().single();
+  if (error) return dbErr(res, error);
+  res.json({ success: true, bill: data });
+});
+
+// DELETE SM bill
+app.delete('/api/sm/bills/:no', auth, async (req, res) => {
+  const { error } = await db.from('sm_bills')
+    .delete().eq('no', req.params.no).eq('user_id', clientId(req));
+  if (error) return dbErr(res, error);
+  res.json({ success: true });
+});
+
+// ── SM REPORTS ───────────────────────────────────────────────────────────────
+app.get('/api/sm/reports', auth, async (req, res) => {
+  const cid = clientId(req);
+  const { type = 'daily', from, to } = req.query;
+  const { start, end } = dateRange(type, from, to);
+  const { data: bills, error } = await db.from('sm_bills').select('*')
+    .eq('user_id', cid).gte('time', start).lte('time', end);
+  if (error) return dbErr(res, error);
+
+  const totalRev = bills.reduce((s, b) => s + parseFloat(b.grand_total), 0);
+  const totalTax = bills.reduce((s, b) => s + parseFloat(b.tax), 0);
+  const totalDisc = bills.reduce((s, b) => s + parseFloat(b.discount), 0);
+
+  // Product-wise sales
+  const productMap = {};
+  bills.forEach(b => {
+    const cart = Array.isArray(b.cart) ? b.cart : JSON.parse(b.cart || '[]');
+    cart.forEach(item => {
+      if (!productMap[item.name]) productMap[item.name] = { name: item.name, emoji: item.emoji || '🛒', unit: item.unit, qty: 0, amount: 0 };
+      productMap[item.name].qty += parseFloat(item.qty);
+      productMap[item.name].amount += parseFloat(item.amount);
+    });
+  });
+
+  // Category-wise
+  const catMap = {};
+  bills.forEach(b => {
+    const cart = Array.isArray(b.cart) ? b.cart : JSON.parse(b.cart || '[]');
+    cart.forEach(item => {
+      catMap[item.category || 'General'] = (catMap[item.category || 'General'] || 0) + parseFloat(item.amount);
+    });
+  });
+
+  // Payment mode
+  const payMap = {};
+  bills.forEach(b => {
+    const pm = b.pay_mode || 'Cash';
+    payMap[pm] = payMap[pm] || { count: 0, revenue: 0 };
+    payMap[pm].count++;
+    payMap[pm].revenue += parseFloat(b.grand_total);
+  });
+
+  // Daily trend
+  const dayMap = {};
+  bills.forEach(b => {
+    const d = b.time.slice(0, 10);
+    dayMap[d] = dayMap[d] || { date: d, bills: 0, revenue: 0 };
+    dayMap[d].bills++;
+    dayMap[d].revenue += parseFloat(b.grand_total);
+  });
+
+  res.json({
+    summary: { totalRevenue: totalRev, totalTax, totalDiscount: totalDisc, totalBills: bills.length, avgBillValue: bills.length ? totalRev / bills.length : 0 },
+    productSales: Object.values(productMap).sort((a, b) => b.amount - a.amount),
+    catSales: Object.entries(catMap).map(([cat, rev]) => ({ cat, revenue: rev })).sort((a, b) => b.revenue - a.revenue),
+    payBreakdown: Object.entries(payMap).map(([mode, v]) => ({ mode, ...v })),
+    dailyTrend: Object.values(dayMap).sort((a, b) => a.date.localeCompare(b.date)),
   });
 });
 
