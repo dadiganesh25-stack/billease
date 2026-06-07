@@ -1,0 +1,118 @@
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  BillEase — Supabase + Railway Setup Guide
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FILES:
+  server.js          → Node.js/Express backend (Supabase)
+  public/index.html  → Full SPA frontend
+  schema.sql         → Run once in Supabase SQL Editor
+  package.json       → npm dependencies
+  .env.example       → Copy to .env and fill values
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 1 — Create Supabase Project (FREE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Go to supabase.com → Sign up (free)
+2. Click "New Project"
+3. Fill:
+   - Project name : billease
+   - Database password : (save this somewhere)
+   - Region : choose closest to you
+4. Wait ~2 minutes for project to be ready
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 2 — Run the Schema (create tables)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. In Supabase dashboard → left sidebar → "SQL Editor"
+2. Click "New Query"
+3. Copy the ENTIRE contents of schema.sql
+4. Paste it in the editor
+5. Click "Run" (green button)
+6. You should see "Success. No rows returned"
+   This creates all tables + seeds the admin user.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 3 — Get your Supabase Keys
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+In Supabase dashboard:
+  Left sidebar → Project Settings (gear icon) → API
+
+Copy these two values:
+  Project URL   → looks like: https://abcxyz.supabase.co
+  service_role  → long key starting with "eyJ..." (NOT anon key)
+                  ⚠️ Use service_role, NOT anon/public key
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 4 — Test Locally First (optional)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Create a .env file in your project folder:
+
+  SUPABASE_URL=https://your-project.supabase.co
+  SUPABASE_KEY=your-service-role-key
+  GMAIL_USER=dadiganesh25@gmail.com
+  GMAIL_APP_PASS=your16charapppassword
+  JWT_SECRET=any-long-random-string
+  BASE_URL=http://localhost:3000
+
+Then run:
+  npm install
+  node server.js
+
+Open http://localhost:3000
+Login: admin@billease.com / password ✅
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 5 — Deploy to Railway
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Push to GitHub:
+   git init
+   git add .
+   git commit -m "BillEase Supabase"
+   (create repo on github.com, then:)
+   git remote add origin https://github.com/YOU/billease.git
+   git push -u origin main
+
+2. Go to railway.app → New Project → Deploy from GitHub
+3. Select your repo → Deploy
+4. Click "Generate Domain" to get your live URL
+   e.g. https://billease.up.railway.app
+
+5. In Railway → Variables tab → add ALL of these:
+   ┌─────────────────┬──────────────────────────────────────┐
+   │ SUPABASE_URL    │ https://your-project.supabase.co     │
+   │ SUPABASE_KEY    │ your-service-role-key                │
+   │ GMAIL_USER      │ dadiganesh25@gmail.com               │
+   │ GMAIL_APP_PASS  │ your16charapppassword                │
+   │ JWT_SECRET      │ any-long-random-string               │
+   │ BASE_URL        │ https://billease.up.railway.app      │
+   └─────────────────┴──────────────────────────────────────┘
+
+6. Railway auto-restarts → your app is live! 🎉
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 6 — Deploy to Vercel (alternative to Railway)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Go to vercel.com → New Project → Import from GitHub
+2. Select repo
+3. Framework Preset: "Other"
+4. Build Command: (leave empty)
+5. Output Directory: (leave empty)
+6. Install Command: npm install
+7. Add same environment variables as above
+8. Deploy → get your vercel.app URL ✅
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WHY THIS IS BETTER THAN db.json
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Data NEVER lost on redeploy
+✅ Multiple clients can bill simultaneously (no corruption)
+✅ Works on Vercel, Railway, Render — anywhere
+✅ Free Supabase tier: 500MB, unlimited API calls
+✅ Auto-backups by Supabase
+✅ View/edit data directly in Supabase Table Editor
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DEFAULT LOGIN:
+  Admin Email    : admin@billease.com
+  Admin Password : password
+  (Change this after first login in Settings)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

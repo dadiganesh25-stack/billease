@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BillEase</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f4ef;--surf:#fff;--surf2:#f0ede6;
+  --green:#1a5c3a;--green2:#2e8a58;--green-lt:#e8f5ee;
+  --gold:#c8852a;--gold-lt:#fdf3e3;
+  --red:#c0392b;--red-lt:#fdecea;
+  --blue:#1a4fa0;--blue-lt:#e8effe;
+  --text:#1a1a18;--text2:#5a5a50;--text3:#9a9a8a;
+  --bdr:#dedad2;--r:12px;--rsm:8px;
+  --shadow:0 2px 16px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px}
+a{color:var(--green);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ─ PAGES ─ */
+.page{display:none;min-height:100vh}
+.page.active{display:flex}
+
+/* ─ AUTH PAGES ─ */
+.auth-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--bg)}
+.auth-card{background:var(--surf);border-radius:var(--r);padding:40px;width:100%;max-width:440px;box-shadow:var(--shadow)}
+.auth-logo{font-family:'DM Serif Display',serif;font-size:2rem;color:var(--green);margin-bottom:6px;display:flex;align-items:center;gap:10px}
+.auth-sub{font-size:14px;color:var(--text3);margin-bottom:28px}
+.auth-title{font-size:1.2rem;font-weight:600;margin-bottom:18px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:13px;font-weight:500;color:var(--text2);margin-bottom:5px}
+.field input{width:100%;padding:10px 12px;border:1.5px solid var(--bdr);border-radius:var(--rsm);font:inherit;font-size:14px;outline:none;background:var(--bg);color:var(--text);transition:.2s}
+.field input:focus{border-color:var(--green2);background:#fff}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-full{width:100%;padding:12px;border:none;border-radius:var(--rsm);font:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:.15s;margin-top:6px}
+.btn-full:active{transform:scale(.99)}
+.btn-primary{background:var(--green);color:#fff}
+.btn-primary:hover{background:var(--green2)}
+.btn-secondary{background:transparent;border:1.5px solid var(--bdr);color:var(--text2)}
+.btn-secondary:hover{border-color:var(--green);color:var(--green)}
+.auth-switch{text-align:center;margin-top:18px;font-size:13px;color:var(--text3)}
+.divider{display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--text3);font-size:12px}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--bdr)}
+.alert{padding:10px 14px;border-radius:var(--rsm);font-size:13.5px;margin-bottom:14px;display:none}
+.alert.error{background:var(--red-lt);color:var(--red);display:block}
+.alert.success{background:var(--green-lt);color:var(--green);display:block}
+.auth-banner{flex:1;background:var(--green);display:flex;flex-direction:column;justify-content:center;padding:60px;color:#fff;max-width:440px}
+.auth-banner h1{font-family:'DM Serif Display',serif;font-size:2.5rem;margin-bottom:16px;line-height:1.2}
+.auth-banner p{opacity:.75;font-size:15px;line-height:1.7}
+.feat-list{margin-top:28px;list-style:none;display:flex;flex-direction:column;gap:12px}
+.feat-list li{display:flex;align-items:center;gap:10px;font-size:14px;opacity:.85}
+.feat-list li::before{content:'✓';background:rgba(255,255,255,.2);width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+.verify-box{text-align:center;padding:20px}
+.verify-box .big-icon{font-size:52px;margin-bottom:16px}
+.verify-box h3{font-size:1.15rem;font-weight:600;margin-bottom:8px}
+.verify-box p{font-size:13.5px;color:var(--text2);margin-bottom:16px}
+.preview-link{background:var(--blue-lt);color:var(--blue);border-radius:6px;padding:8px 12px;font-size:12.5px;word-break:break-all;margin-top:10px;display:block}
+
+/* ─ APP SHELL ─ */
+.app-page{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.top{background:var(--green);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 18px;height:52px;flex-shrink:0}
+.logo{font-family:'DM Serif Display',serif;font-size:1.3rem;display:flex;align-items:center;gap:8px}
+.logo small{opacity:.6;font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:300}
+.top-btns{display:flex;gap:8px;align-items:center}
+.tbtn{background:rgba(255,255,255,.15);border:none;color:#fff;padding:5px 13px;border-radius:20px;font:inherit;font-size:13px;cursor:pointer;transition:.2s}
+.tbtn:hover{background:rgba(255,255,255,.28)}
+.tbtn.gold{background:var(--gold)}
+.tbtn.red{background:var(--red)}
+.user-chip{display:flex;align-items:center;gap:7px;font-size:13px;background:rgba(255,255,255,.12);padding:4px 12px;border-radius:20px}
+.user-av{width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600}
+
+/* ─ BILLING LAYOUT ─ */
+.wrap{display:flex;flex:1;overflow:hidden}
+.cat-panel{width:305px;min-width:265px;background:var(--surf);border-right:1px solid var(--bdr);display:flex;flex-direction:column;overflow:hidden}
+.search-box{padding:10px 12px;border-bottom:1px solid var(--bdr)}
+.search-box input{width:100%;padding:8px 11px;border:1.5px solid var(--bdr);border-radius:var(--rsm);font:inherit;font-size:13.5px;outline:none;background:var(--bg);transition:.2s}
+.search-box input:focus{border-color:var(--green2);background:#fff}
+.cat-tabs{display:flex;gap:5px;padding:8px 12px;overflow-x:auto;border-bottom:1px solid var(--bdr);scrollbar-width:none}
+.cat-tabs::-webkit-scrollbar{display:none}
+.ctab{white-space:nowrap;padding:4px 11px;border-radius:20px;border:1.5px solid var(--bdr);background:transparent;font:inherit;font-size:12.5px;cursor:pointer;color:var(--text2);transition:.2s}
+.ctab.on{background:var(--green);border-color:var(--green);color:#fff}
+.items-grid{flex:1;overflow-y:auto;padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:7px;align-content:start}
+.ic{background:var(--bg);border:1.5px solid transparent;border-radius:var(--rsm);padding:9px;cursor:pointer;transition:.15s;position:relative;user-select:none}
+.ic:hover{border-color:var(--green2);background:var(--green-lt)}
+.ic:active{transform:scale(.97)}
+.ic-em{font-size:21px;margin-bottom:3px}
+.ic-name{font-size:12px;font-weight:500;line-height:1.3}
+.ic-price{font-size:12px;color:var(--green);font-weight:600;margin-top:2px}
+.ic-badge{position:absolute;top:5px;right:5px;background:var(--green);color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:700}
+
+/* ─ BILL CENTER ─ */
+.bill-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.bill-head{padding:11px 15px;background:var(--surf);border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.bill-meta{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.bmeta{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2)}
+.bmeta input{border:1.5px solid var(--bdr);border-radius:6px;padding:4px 7px;font:inherit;font-size:13px;color:var(--text);outline:none;width:115px;background:var(--bg)}
+.bmeta input:focus{border-color:var(--green2)}
+.bill-no{font-size:13px;font-weight:600;color:var(--green);background:var(--green-lt);padding:4px 10px;border-radius:20px}
+.bill-body{flex:1;overflow-y:auto;padding:12px 15px}
+.empty{text-align:center;padding:50px 20px;color:var(--text3)}
+.empty .ei{font-size:40px;margin-bottom:10px}
+table.bt{width:100%;border-collapse:collapse}
+.bt thead th{text-align:left;font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;padding:0 6px 8px;border-bottom:1px solid var(--bdr)}
+.bt thead th:nth-child(4),.bt thead th:nth-child(5){text-align:right}
+.bt tbody tr{border-bottom:1px solid var(--bdr)}
+.bt tbody tr:last-child{border-bottom:none}
+.bt td{padding:8px 6px;font-size:13px;vertical-align:middle}
+.bt td:nth-child(4),.bt td:nth-child(5){text-align:right}
+.qdel{background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 3px;border-radius:4px;transition:.2s}
+.qdel:hover{color:var(--red)}
+.qc{display:flex;align-items:center;gap:5px}
+.qb{width:23px;height:23px;border-radius:50%;border:1.5px solid var(--bdr);background:var(--surf);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text);transition:.15s;font-weight:500;line-height:1}
+.qb:hover{border-color:var(--green);color:var(--green)}
+.qv{min-width:22px;text-align:center;font-weight:500;font-size:13px}
+
+/* ─ BILL FOOTER ─ */
+.bill-foot{background:var(--surf);border-top:1px solid var(--bdr);padding:11px 15px}
+.totals{display:grid;grid-template-columns:1fr 1fr;gap:7px 20px;margin-bottom:9px}
+.tr{display:flex;justify-content:space-between;font-size:13px;color:var(--text2);padding:2px 0}
+.tr.grand{font-size:16px;font-weight:600;color:var(--text);padding-top:8px;border-top:2px solid var(--bdr);margin-top:3px}
+.tr.grand span:last-child{color:var(--green)}
+.disc-row{display:flex;gap:6px;align-items:center;margin-bottom:9px}
+.disc-row input,.disc-row select{border:1.5px solid var(--bdr);border-radius:6px;padding:4px 7px;font:inherit;font-size:12.5px;outline:none;background:var(--bg)}
+.disc-row input{width:76px}.disc-row select{width:88px}
+.bill-acts{display:flex;gap:6px;margin-top:9px}
+.btn{flex:1;padding:9px;border:none;border-radius:var(--rsm);font:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:.15s}
+.btn:active{transform:scale(.98)}
+.btn-o{background:transparent;border:1.5px solid var(--bdr);color:var(--text2)}
+.btn-o:hover{border-color:var(--green);color:var(--green)}
+.btn-r{background:var(--red-lt);color:var(--red);border:none}
+.btn-r:hover{background:var(--red);color:#fff}
+.btn-g{background:var(--green);color:#fff}
+.btn-g:hover{background:var(--green2)}
+.btn-gold{background:var(--gold);color:#fff}
+
+/* ─ RIGHT PANEL ─ */
+.rp{width:320px;min-width:285px;background:var(--surf);border-left:1px solid var(--bdr);display:flex;flex-direction:column;overflow:hidden}
+.rp-tabs{display:flex;border-bottom:1px solid var(--bdr)}
+.rpt{flex:1;padding:10px 4px;text-align:center;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:.2s}
+.rpt.on{color:var(--green);border-bottom-color:var(--green)}
+.rp-body{flex:1;overflow-y:auto;padding:12px}
+
+/* ─ SETTINGS ─ */
+.sl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:6px;margin-top:14px}
+.sl:first-child{margin-top:0}
+.sr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;font-size:13px}
+.si{border:1.5px solid var(--bdr);border-radius:6px;padding:5px 7px;font:inherit;font-size:12.5px;width:145px;outline:none;background:var(--bg);color:var(--text)}
+.si:focus{border-color:var(--green2)}
+.tog{width:36px;height:20px;background:var(--bdr);border-radius:10px;position:relative;cursor:pointer;transition:.2s;border:none;flex-shrink:0}
+.tog.on{background:var(--green)}
+.tog::after{content:'';position:absolute;top:3px;left:3px;width:14px;height:14px;background:#fff;border-radius:50%;transition:.2s}
+.tog.on::after{left:19px}
+
+/* ─ HISTORY ─ */
+.hi{background:var(--bg);border-radius:var(--rsm);padding:9px 10px;margin-bottom:6px;cursor:pointer;transition:.15s;border:1.5px solid transparent}
+.hi:hover{border-color:var(--green2);background:var(--green-lt)}
+.hi-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px}
+.hi-no{font-size:12px;font-weight:600;color:var(--green)}
+.hi-amt{font-size:13px;font-weight:600}
+.hi-meta{font-size:11px;color:var(--text3)}
+.mb{padding:3px 8px;border-radius:5px;border:none;font:inherit;font-size:11.5px;cursor:pointer;transition:.15s}
+.mb.edit{background:var(--green-lt);color:var(--green)}
+.mb.del{background:var(--red-lt);color:var(--red)}
+.mb.edit:hover{background:var(--green);color:#fff}
+.mb.del:hover{background:var(--red);color:#fff}
+
+/* ─ REPORTS ─ */
+.rep-filter{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.rep-filter select,.rep-filter input{border:1.5px solid var(--bdr);border-radius:6px;padding:5px 7px;font:inherit;font-size:12px;outline:none;background:var(--bg);color:var(--text)}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px}
+.stat{background:var(--bg);border-radius:var(--rsm);padding:10px;text-align:center}
+.stat-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:3px}
+.stat-val{font-size:16px;font-weight:600;color:var(--text)}
+.stat-val.g{color:var(--green)}.stat-val.gold{color:var(--gold)}
+.rep-section{margin-bottom:14px}
+.rep-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:7px}
+.rep-row{padding:7px 9px;background:var(--bg);border-radius:6px;margin-bottom:4px;font-size:12.5px}
+.rep-bar{height:4px;background:var(--green-lt);border-radius:3px;margin-top:4px}
+.rep-bar-fill{height:100%;background:var(--green);border-radius:3px;transition:.4s}
+.chart-wrap{background:var(--bg);border-radius:var(--rsm);padding:8px;margin-bottom:10px;height:110px;display:flex;align-items:flex-end;gap:3px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px}
+.bar-rect{width:100%;background:var(--green);border-radius:3px 3px 0 0;min-height:2px;transition:.4s}
+.bar-lbl{font-size:8px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center}
+
+/* ─ ADMIN DASHBOARD ─ */
+.admin-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.admin-nav{background:var(--surf);border-bottom:1px solid var(--bdr);display:flex;gap:0;padding:0 18px}
+.anav-btn{padding:13px 18px;font:inherit;font-size:13.5px;font-weight:500;color:var(--text2);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:.2s}
+.anav-btn.on{color:var(--green);border-bottom-color:var(--green)}
+.admin-body{flex:1;overflow-y:auto;padding:22px}
+.admin-title{font-family:'DM Serif Display',serif;font-size:1.6rem;margin-bottom:4px}
+.admin-sub{font-size:13.5px;color:var(--text3);margin-bottom:20px}
+.cards-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.card{background:var(--surf);border-radius:var(--r);padding:18px;box-shadow:var(--shadow)}
+.card-lbl{font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:6px}
+.card-val{font-size:24px;font-weight:600;color:var(--text)}
+.card-val.g{color:var(--green)}.card-val.gold{color:var(--gold)}.card-val.blue{color:var(--blue)}
+.clients-table{background:var(--surf);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;margin-bottom:22px}
+.ct-head{display:grid;grid-template-columns:1fr 1fr 90px 90px 100px 110px;gap:0;background:var(--bg);border-bottom:1px solid var(--bdr);padding:10px 16px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)}
+.ct-row{display:grid;grid-template-columns:1fr 1fr 90px 90px 100px 110px;gap:0;padding:12px 16px;border-bottom:1px solid var(--bdr);font-size:13.5px;align-items:center;transition:.15s}
+.ct-row:last-child{border-bottom:none}
+.ct-row:hover{background:var(--bg)}
+.status-badge{display:inline-block;padding:2px 9px;border-radius:12px;font-size:11px;font-weight:500}
+.status-badge.verified{background:var(--green-lt);color:var(--green)}
+.status-badge.pending{background:var(--gold-lt);color:var(--gold)}
+.ct-actions{display:flex;gap:5px}
+.admin-rep-filter{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:18px}
+.admin-rep-filter select,.admin-rep-filter input{border:1.5px solid var(--bdr);border-radius:6px;padding:6px 10px;font:inherit;font-size:13px;outline:none;background:var(--bg);color:var(--text)}
+.admin-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.admin-client-card{background:var(--surf);border-radius:var(--r);padding:16px;box-shadow:var(--shadow);border:1.5px solid transparent;cursor:pointer;transition:.15s}
+.admin-client-card:hover{border-color:var(--green2)}
+.admin-client-card h4{font-size:14px;font-weight:600;margin-bottom:2px}
+.admin-client-card p{font-size:12px;color:var(--text3)}
+.admin-client-card .card-rev{font-size:18px;font-weight:600;color:var(--green);margin-top:8px}
+.section-title{font-size:15px;font-weight:600;margin-bottom:12px;color:var(--text);display:flex;align-items:center;gap:8px}
+.section-title span{font-size:12px;font-weight:400;color:var(--text3)}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
+.panel-box{background:var(--surf);border-radius:var(--r);padding:18px;box-shadow:var(--shadow)}
+.panel-box .rep-row{font-size:13px}
+
+/* ─ MODALS ─ */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:200;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:var(--surf);border-radius:var(--r);padding:26px;width:420px;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.18)}
+.modal-wide{width:520px}
+.modal h2{font-family:'DM Serif Display',serif;font-size:1.2rem;margin-bottom:15px}
+.modal-acts{display:flex;gap:8px;margin-top:14px}
+.receipt-txt{font-family:'Courier New',monospace;font-size:12px;background:#fffef9;border:1px solid var(--bdr);border-radius:8px;padding:15px;white-space:pre;line-height:1.65;overflow-x:auto}
+.manage-row{display:flex;align-items:center;gap:6px;margin-bottom:6px;background:var(--bg);padding:8px 10px;border-radius:var(--rsm)}
+.manage-row .mn{flex:1;font-size:13px}
+.manage-row .mp{font-size:12px;color:var(--green);font-weight:500;min-width:55px;text-align:right}
+.add-form{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid var(--bdr)}
+.add-form input,.add-form select{flex:1;min-width:85px;border:1.5px solid var(--bdr);border-radius:6px;padding:6px 8px;font:inherit;font-size:13px;outline:none;background:var(--bg);color:var(--text)}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--green);color:#fff;padding:8px 20px;border-radius:20px;font-size:13.5px;z-index:999;box-shadow:0 4px 18px rgba(0,0,0,.14);pointer-events:none}
+@media print{body>.page:not(#app-page){display:none}.top,.cat-panel,.rp,.bill-head,.bill-acts,.bill-foot{display:none!important}.bill-body{overflow:visible}}
+</style>
+</head>
+<body>
+
+<!-- ══ PAGE: LOGIN ══════════════════════════════════════════════════════════ -->
+<div class="page active" id="pg-login">
+  <div class="auth-banner">
+    <div style="font-family:'DM Serif Display',serif;font-size:1.8rem;margin-bottom:20px;display:flex;align-items:center;gap:10px">🧾 BillEase</div>
+    <h1>Smart Billing for Every Business</h1>
+    <p>From street vendors to 5-star hotels — one platform for all your billing needs.</p>
+    <ul class="feat-list">
+      <li>Full billing with GST & discounts</li>
+      <li>Item management with categories</li>
+      <li>Daily, monthly & custom reports</li>
+      <li>All data stored in JSON — yours forever</li>
+      <li>Multi-client admin dashboard</li>
+    </ul>
+  </div>
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div id="login-alert" class="alert"></div>
+      <div class="auth-title">Sign in to your account</div>
+      <div class="field"><label>Email Address</label><input type="email" id="l-email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="field"><label>Password</label><input type="password" id="l-pass" placeholder="Your password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="btn-full btn-primary" onclick="doLogin()">Sign In →</button>
+      <div class="divider">or</div>
+      <button class="btn-full btn-secondary" onclick="goPage('pg-register')">Create New Account</button>
+      <div class="auth-switch" id="login-verified-msg" style="display:none">
+        <span style="background:var(--green-lt);color:var(--green);padding:8px 14px;border-radius:8px;display:block">✅ Email verified! You can now sign in.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PAGE: REGISTER ═══════════════════════════════════════════════════════ -->
+<div class="page" id="pg-register">
+  <div class="auth-wrap" style="background:var(--bg)">
+    <div class="auth-card" style="max-width:520px">
+      <div class="auth-logo">🧾 BillEase</div>
+      <div class="auth-sub">Set up your billing account in seconds</div>
+      <div id="reg-alert" class="alert"></div>
+      <div id="reg-form">
+        <div class="field-row">
+          <div class="field"><label>Your Name *</label><input type="text" id="r-name" placeholder="Ravi Kumar"></div>
+          <div class="field"><label>Email Address *</label><input type="email" id="r-email" placeholder="ravi@shop.com"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Password *</label><input type="password" id="r-pass" placeholder="Min 6 characters"></div>
+          <div class="field"><label>Confirm Password *</label><input type="password" id="r-pass2" placeholder="Repeat password"></div>
+        </div>
+        <div style="background:var(--bg);border-radius:var(--rsm);padding:14px;margin-bottom:14px">
+          <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:10px">Business Details</div>
+          <div class="field"><label>Business Name *</label><input type="text" id="r-biz" placeholder="Sharma Tea Stall / Hotel Grand etc."></div>
+          <div class="field-row">
+            <div class="field"><label>Address</label><input type="text" id="r-addr" placeholder="123 MG Road, City"></div>
+            <div class="field"><label>Phone</label><input type="text" id="r-phone" placeholder="9876543210"></div>
+          </div>
+        </div>
+        <button class="btn-full btn-primary" onclick="doRegister()">Create Account & Verify Email →</button>
+      </div>
+      <div id="reg-success" style="display:none" class="verify-box">
+        <div class="big-icon">📧</div>
+        <h3 id="reg-success-title">Account Created!</h3>
+        <p id="reg-success-msg">Processing your registration…</p>
+        <div id="reg-verify-wrap" style="display:none;margin-top:12px">
+          <div style="font-size:12px;color:var(--text3);margin-bottom:6px">🔗 Verification Link (click to activate):</div>
+          <a id="reg-verify-link" href="#" target="_blank" class="preview-link"></a>
+        </div>
+        <button class="btn-full btn-secondary" style="margin-top:16px" onclick="goPage('pg-login')">← Back to Login</button>
+      </div>
+      <div class="auth-switch">Already have an account? <a href="#" onclick="goPage('pg-login')">Sign in</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PAGE: APP (BILLING) ══════════════════════════════════════════════════ -->
+<div class="page" id="pg-app">
+  <div class="app-page">
+    <div class="top">
+      <div class="logo">🧾 BillEase <small id="biz-top">My Store</small></div>
+      <div class="top-btns">
+        <div class="user-chip"><div class="user-av" id="user-av">U</div><span id="user-name-top">User</span></div>
+        <button class="tbtn" onclick="openManage()">📦 Items</button>
+        <button class="tbtn" onclick="showReceipt()">🖨 Print</button>
+        <button class="tbtn gold" onclick="saveBill()">✅ Save</button>
+        <button class="tbtn red" onclick="logout()">Logout</button>
+      </div>
+    </div>
+    <div class="wrap">
+      <!-- LEFT: CATALOG -->
+      <div class="cat-panel">
+        <div class="search-box"><input id="srch" placeholder="🔍 Search items…" oninput="renderItems()"></div>
+        <div class="cat-tabs" id="catBar"></div>
+        <div class="items-grid" id="itemsGrid"></div>
+      </div>
+      <!-- CENTER: BILL -->
+      <div class="bill-panel">
+        <div class="bill-head">
+          <div class="bill-meta">
+            <span class="bill-no" id="billNo">Bill #001</span>
+            <div class="bmeta">👤<input id="cName" placeholder="Customer name"></div>
+            <div class="bmeta">📱<input id="cPhone" placeholder="Phone" style="width:100px"></div>
+            <div class="bmeta">🪑<input id="cTable" placeholder="Table/Token" style="width:90px"></div>
+          </div>
+          <div style="font-size:11.5px;color:var(--text3)" id="clk"></div>
+        </div>
+        <div class="bill-body">
+          <div class="empty" id="emptyMsg"><div class="ei">🛒</div><p style="font-size:13.5px">Tap items on the left to add to bill</p></div>
+          <table class="bt" id="billTbl" style="display:none">
+            <thead><tr><th>#</th><th>Item</th><th>Qty</th><th>Rate</th><th>Amount</th><th></th></tr></thead>
+            <tbody id="billBody"></tbody>
+          </table>
+        </div>
+        <div class="bill-foot">
+          <div class="totals">
+            <div>
+              <div class="tr"><span>Subtotal</span><span id="tSub">₹0.00</span></div>
+              <div class="tr" id="dRow" style="display:none"><span>Discount</span><span id="tDisc" style="color:var(--red)"></span></div>
+              <div class="tr" id="txRow"><span>Tax (<span id="txLbl">0</span>%)</span><span id="tTax">₹0.00</span></div>
+              <div class="tr grand"><span>Total</span><span id="tGrand">₹0.00</span></div>
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text3);margin-bottom:5px">Discount</div>
+              <div class="disc-row">
+                <input type="number" id="discV" placeholder="0" min="0" oninput="calc()">
+                <select id="discT" onchange="calc()"><option value="flat">₹ Flat</option><option value="pct">% Pct</option></select>
+              </div>
+              <div style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text3);margin-bottom:5px">Payment</div>
+              <select class="si" id="payMode" style="width:100%">
+                <option>Cash</option><option>Card</option><option>UPI</option><option>Online</option><option>Split</option>
+              </select>
+            </div>
+          </div>
+          <div class="bill-acts">
+            <button class="btn btn-r" onclick="clearBill()">🗑 Clear</button>
+            <button class="btn btn-o" onclick="holdBill()">📌 Hold</button>
+            <button class="btn btn-o" onclick="showReceipt()">🖨 Print</button>
+            <button class="btn btn-g" onclick="saveBill()">✅ Save Bill</button>
+          </div>
+        </div>
+      </div>
+      <!-- RIGHT PANEL -->
+      <div class="rp">
+        <div class="rp-tabs">
+          <div class="rpt on" id="tab-s" onclick="tab('s')">⚙️ Settings</div>
+          <div class="rpt" id="tab-h" onclick="tab('h')">📋 History</div>
+          <div class="rpt" id="tab-r" onclick="tab('r')">📊 Reports</div>
+        </div>
+        <div class="rp-body" id="rpBody"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PAGE: ADMIN ══════════════════════════════════════════════════════════ -->
+<div class="page" id="pg-admin">
+  <div class="app-page">
+    <div class="top">
+      <div class="logo">🧾 BillEase <small>Admin Console</small></div>
+      <div class="top-btns">
+        <div class="user-chip"><div class="user-av">A</div><span>Super Admin</span></div>
+        <button class="tbtn red" onclick="logout()">Logout</button>
+      </div>
+    </div>
+    <div class="admin-wrap">
+      <div class="admin-nav">
+        <button class="anav-btn on" id="anav-overview" onclick="adminTab('overview')">📊 Overview</button>
+        <button class="anav-btn" id="anav-clients" onclick="adminTab('clients')">👥 Clients</button>
+        <button class="anav-btn" id="anav-reports" onclick="adminTab('reports')">📈 Reports</button>
+      </div>
+      <div class="admin-body" id="adminBody"></div>
+    </div>
+  </div>
+</div>
+
+<!-- RECEIPT MODAL -->
+<div class="overlay" id="rcptModal">
+  <div class="modal">
+    <h2>🧾 Bill Receipt</h2>
+    <div class="receipt-txt" id="rcptTxt"></div>
+    <div class="modal-acts">
+      <button class="btn btn-o" onclick="closeM('rcptModal')">Close</button>
+      <button class="btn btn-g" onclick="window.print()">🖨 Print</button>
+    </div>
+  </div>
+</div>
+
+<!-- MANAGE ITEMS MODAL -->
+<div class="overlay" id="manageModal">
+  <div class="modal modal-wide">
+    <h2>📦 Manage Items</h2>
+    <div id="manageList" style="max-height:320px;overflow-y:auto"></div>
+    <div class="add-form">
+      <input id="nEmoji" placeholder="Emoji" style="max-width:52px">
+      <input id="nName" placeholder="Item Name" style="min-width:130px">
+      <input id="nPrice" type="number" placeholder="Price" style="max-width:82px">
+      <select id="nCat" style="max-width:105px">
+        <option>Food</option><option>Drink</option><option>Grocery</option>
+        <option>Snack</option><option>Dessert</option><option>Other</option>
+      </select>
+      <button class="btn btn-g" style="flex:0;padding:6px 12px;font-size:13px" onclick="addItem()">+ Add</button>
+    </div>
+    <div class="modal-acts"><button class="btn btn-o" onclick="closeM('manageModal')">Done</button></div>
+  </div>
+</div>
+
+<!-- EDIT ITEM MODAL -->
+<div class="overlay" id="editModal">
+  <div class="modal">
+    <h2>✏️ Edit Item</h2>
+    <div id="editForm" style="display:flex;flex-wrap:wrap;gap:7px"></div>
+    <div class="modal-acts">
+      <button class="btn btn-o" onclick="closeM('editModal')">Cancel</button>
+      <button class="btn btn-g" onclick="saveEdit()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:3000/api';
+let TOKEN = localStorage.getItem('be_token') || '';
+let ME = JSON.parse(localStorage.getItem('be_me') || 'null');
+let S = {}, items = [], cart = [], rTab = 's', aCat = 'All', editId = null;
+
+// ── API Helper ────────────────────────────────────────────────────────────────
+async function api(method, path, body, customToken) {
+  const t = customToken || TOKEN;
+  const r = await fetch(API + path, {
+    method, headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + t },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const d = await r.json();
+  if (r.status === 401) { logout(); throw new Error('Unauthorized'); }
+  return d;
+}
+
+// ── PAGE ROUTING ─────────────────────────────────────────────────────────────
+function goPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function logout() {
+  TOKEN = ''; ME = null;
+  localStorage.removeItem('be_token'); localStorage.removeItem('be_me');
+  goPage('pg-login');
+}
+
+// ── LOGIN ─────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const email = document.getElementById('l-email').value.trim();
+  const password = document.getElementById('l-pass').value;
+  const alert = document.getElementById('login-alert');
+  alert.className = 'alert'; alert.style.display = 'none';
+  if (!email || !password) { showAlert('login-alert', 'error', 'Please enter email and password.'); return; }
+  try {
+    const r = await fetch(API + '/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
+    const d = await r.json();
+    if (!r.ok) { showAlert('login-alert', 'error', d.error || 'Login failed'); return; }
+    TOKEN = d.token; ME = d.user;
+    localStorage.setItem('be_token', TOKEN); localStorage.setItem('be_me', JSON.stringify(ME));
+    if (ME.role === 'admin') { goPage('pg-admin'); initAdmin(); }
+    else { goPage('pg-app'); initApp(); }
+  } catch { showAlert('login-alert', 'error', 'Server error. Is the server running?'); }
+}
+
+// ── REGISTER ──────────────────────────────────────────────────────────────────
+async function doRegister() {
+  const name = document.getElementById('r-name').value.trim();
+  const email = document.getElementById('r-email').value.trim();
+  const pass = document.getElementById('r-pass').value;
+  const pass2 = document.getElementById('r-pass2').value;
+  const bizName = document.getElementById('r-biz').value.trim();
+  const bizAddress = document.getElementById('r-addr').value.trim();
+  const bizPhone = document.getElementById('r-phone').value.trim();
+  if (!name || !email || !pass || !bizName) { showAlert('reg-alert', 'error', 'Please fill all required fields.'); return; }
+  if (pass.length < 6) { showAlert('reg-alert', 'error', 'Password must be at least 6 characters.'); return; }
+  if (pass !== pass2) { showAlert('reg-alert', 'error', 'Passwords do not match.'); return; }
+  try {
+    const r = await fetch(API + '/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, email, password: pass, bizName, bizAddress, bizPhone }) });
+    const d = await r.json();
+    if (!r.ok) { showAlert('reg-alert', 'error', d.error || 'Registration failed'); return; }
+    document.getElementById('reg-form').style.display = 'none';
+    document.getElementById('reg-success').style.display = 'block';
+    if (d.emailSent) {
+      document.getElementById('reg-success-title').textContent = '📧 Check dadiganesh25@gmail.com!';
+      document.getElementById('reg-success-msg').innerHTML = `Email sent to <strong>dadiganesh25@gmail.com</strong> with the verification link.<br><span style="font-size:13px;color:var(--text3)">The new user (<strong>${email}</strong>) must be verified before they can log in.</span>`;
+    } else {
+      document.getElementById('reg-success-title').textContent = '✅ Account Created!';
+      document.getElementById('reg-success-msg').innerHTML = `Registration successful for <strong>${email}</strong>.<br><span style="color:var(--red);font-size:13px">⚠️ Email could not be sent. Use the link below to verify manually.</span>`;
+    }
+    if (d.verifyUrl) {
+      document.getElementById('reg-verify-wrap').style.display = 'block';
+      const lnk = document.getElementById('reg-verify-link');
+      lnk.href = d.verifyUrl; lnk.textContent = d.verifyUrl;
+    }
+  } catch { showAlert('reg-alert', 'error', 'Server error. Is the server running?'); }
+}
+
+function showAlert(id, type, msg) {
+  const el = document.getElementById(id);
+  el.className = 'alert ' + type; el.textContent = msg;
+}
+
+// ── AUTO-LOGIN ON LOAD ────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  if (location.search.includes('verified=1')) {
+    document.getElementById('login-verified-msg').style.display = 'block';
+    history.replaceState({}, '', '/');
+  }
+  if (TOKEN && ME) {
+    if (ME.role === 'admin') { goPage('pg-admin'); initAdmin(); }
+    else { goPage('pg-app'); initApp(); }
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// BILLING APP
+// ══════════════════════════════════════════════════════════════════════════════
+async function initApp() {
+  S = await api('GET', '/settings');
+  // normalize snake_case from Supabase
+  if (!S.bizName    && S.biz_name)    S.bizName    = S.biz_name;
+  if (!S.bizAddress && S.biz_address) S.bizAddress = S.biz_address;
+  if (!S.bizPhone   && S.biz_phone)   S.bizPhone   = S.biz_phone;
+  if (S.tax_enabled !== undefined && S.taxEnabled === undefined) S.taxEnabled = S.tax_enabled;
+  if (S.tax_rate    !== undefined && S.taxRate    === undefined) S.taxRate    = S.tax_rate;
+  if (!S.taxName    && S.tax_name)    S.taxName    = S.tax_name;
+  if (!S.thankYou   && S.thank_you)   S.thankYou   = S.thank_you;
+  if (!S.billPrefix && S.bill_prefix) S.billPrefix = S.bill_prefix;
+  items = await api('GET', '/items');
+  document.getElementById('biz-top').textContent = S.bizName || S.biz_name || 'My Store';
+  document.getElementById('user-name-top').textContent = ME.name;
+  document.getElementById('user-av').textContent = ME.name[0].toUpperCase();
+  clock(); setInterval(clock, 30000);
+  renderCats(); renderItems(); updateBillNo(); tab('s');
+}
+
+function clock() {
+  const n = new Date();
+  document.getElementById('clk').textContent =
+    n.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) + ' ' +
+    n.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+}
+async function updateBillNo() {
+  const me = await api('GET', '/auth/me');
+  document.getElementById('billNo').textContent = 'Bill #' + String(me.id ? (await api('GET','/bills')).length + 1 : 1).padStart(3,'0');
+  const bills = await api('GET', '/bills');
+  document.getElementById('billNo').textContent = 'Bill #' + String(bills.length + 1).padStart(3,'0');
+}
+
+// ── CATALOG ───────────────────────────────────────────────────────────────────
+function renderCats() {
+  const cats = ['All', ...new Set(items.map(i => i.cat))];
+  document.getElementById('catBar').innerHTML = cats.map(c =>
+    `<button class="ctab ${c===aCat?'on':''}" onclick="setCat('${c}')">${c}</button>`
+  ).join('');
+}
+function setCat(c) { aCat = c; renderCats(); renderItems(); }
+function renderItems() {
+  const q = document.getElementById('srch').value.toLowerCase();
+  const list = items.filter(i => (aCat==='All'||i.cat===aCat) && (!q||i.name.toLowerCase().includes(q)));
+  const g = document.getElementById('itemsGrid');
+  if (!list.length) { g.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--text3);font-size:13px">No items found</div>`; return; }
+  g.innerHTML = list.map(it => {
+    const qty = cart.find(c => c.id === it.id)?.qty || 0;
+    return `<div class="ic" onclick="addToCart(${it.id})">
+      ${qty ? `<div class="ic-badge">${qty}</div>` : ''}
+      <div class="ic-em">${it.emoji}</div>
+      <div class="ic-name">${it.name}</div>
+      <div class="ic-price">${S.currency||'₹'}${it.price}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── CART ──────────────────────────────────────────────────────────────────────
+function addToCart(id) {
+  const it = items.find(i => i.id === id); if (!it) return;
+  const ci = cart.find(c => c.id === id);
+  if (ci) ci.qty++; else cart.push({...it, qty: 1});
+  renderCart(); renderItems(); calc();
+}
+function chgQty(id, d) {
+  const ci = cart.find(c => c.id === id); if (!ci) return;
+  ci.qty += d;
+  if (ci.qty <= 0) cart = cart.filter(c => c.id !== id);
+  renderCart(); renderItems(); calc();
+}
+function delCart(id) { cart = cart.filter(c => c.id !== id); renderCart(); renderItems(); calc(); }
+function renderCart() {
+  const emp = document.getElementById('emptyMsg'), tbl = document.getElementById('billTbl');
+  if (!cart.length) { emp.style.display=''; tbl.style.display='none'; return; }
+  emp.style.display = 'none'; tbl.style.display = '';
+  document.getElementById('billBody').innerHTML = cart.map((c, i) => `
+    <tr>
+      <td style="color:var(--text3);width:26px">${i+1}</td>
+      <td><div style="font-weight:500">${c.emoji} ${c.name}</div><div style="font-size:11px;color:var(--text3)">${c.cat}</div></td>
+      <td><div class="qc"><button class="qb" onclick="chgQty(${c.id},-1)">−</button><span class="qv">${c.qty}</span><button class="qb" onclick="chgQty(${c.id},1)">+</button></div></td>
+      <td style="color:var(--text2)">${S.currency}${c.price}</td>
+      <td style="font-weight:500">${S.currency}${(c.price*c.qty).toFixed(2)}</td>
+      <td><button class="qdel" onclick="delCart(${c.id})">✕</button></td>
+    </tr>`).join('');
+}
+function calc() {
+  const cur = S.currency||'₹', sub = cart.reduce((s,c)=>s+c.price*c.qty,0);
+  const dv = parseFloat(document.getElementById('discV').value)||0;
+  const dt = document.getElementById('discT').value;
+  let disc = dt==='pct' ? sub*(dv/100) : dv; disc = Math.min(disc, sub);
+  const tax = S.taxEnabled ? (sub-disc)*(S.taxRate/100) : 0;
+  const grand = sub - disc + tax;
+  document.getElementById('tSub').textContent = cur+sub.toFixed(2);
+  document.getElementById('tDisc').textContent = '-'+cur+disc.toFixed(2);
+  document.getElementById('dRow').style.display = disc>0 ? '' : 'none';
+  document.getElementById('txLbl').textContent = S.taxEnabled ? S.taxRate : 0;
+  document.getElementById('tTax').textContent = cur+tax.toFixed(2);
+  document.getElementById('txRow').style.display = S.taxEnabled ? '' : 'none';
+  document.getElementById('tGrand').textContent = cur+grand.toFixed(2);
+}
+
+// ── BILL ACTIONS ──────────────────────────────────────────────────────────────
+function clearBill() {
+  if (!cart.length) return;
+  if (!confirm('Clear all items?')) return;
+  cart = []; document.getElementById('discV').value = '';
+  ['cName','cPhone','cTable'].forEach(id => document.getElementById(id).value='');
+  renderCart(); renderItems(); calc();
+}
+async function holdBill() {
+  if (!cart.length) return;
+  const h = { customer: document.getElementById('cName').value||'Guest', table: document.getElementById('cTable').value, cart: [...cart] };
+  await api('POST', '/held', h); toast('📌 Bill held');
+}
+async function saveBill() {
+  if (!cart.length) { alert('Add items first'); return; }
+  const dv = parseFloat(document.getElementById('discV').value)||0;
+  const dt = document.getElementById('discT').value;
+  const sub = cart.reduce((s,c)=>s+c.price*c.qty,0);
+  let disc = dt==='pct' ? sub*(dv/100) : dv; disc = Math.min(disc, sub);
+  const res = await api('POST', '/bills', {
+    cart, customer: document.getElementById('cName').value||'Guest',
+    phone: document.getElementById('cPhone').value,
+    table: document.getElementById('cTable').value,
+    payMode: document.getElementById('payMode').value,
+    disc, discType: dt, discVal: dv
+  });
+  if (res.success) {
+    toast(`✅ Bill #${String(res.bill.no).padStart(3,'0')} saved!`);
+    clearBill(); updateBillNo();
+    if (rTab==='h') renderHistory();
+    if (rTab==='r') loadReport();
+  }
+}
+
+// ── RECEIPT ───────────────────────────────────────────────────────────────────
+function showReceipt(bill) {
+  if (!bill && !cart.length) { alert('No items in bill'); return; }
+  const b = bill || buildPreviewBill();
+  const cur = S.currency||'₹', ln = '─'.repeat(38);
+  const now = new Date(b.time||Date.now());
+  const no = typeof b.no==='number' ? String(b.no).padStart(3,'0') : 'PREVIEW';
+  const bizName    = S.bizName    || S.biz_name    || '';
+  const bizAddress = S.bizAddress || S.biz_address || '';
+  const bizPhone   = S.bizPhone   || S.biz_phone   || '';
+  const billPrefix = S.billPrefix || S.bill_prefix || 'INV';
+  const thankYou   = S.thankYou   || S.thank_you   || 'Thank you!';
+  const tableNo    = b.table || b.tbl || '';
+  const payMode    = b.payMode || b.pay_mode || 'Cash';
+  let r = `${C(bizName,38)}\n${C(bizAddress,38)}\n${C('Ph: '+bizPhone,38)}\n${ln}`;
+  r += `\nBill No : ${billPrefix}-${no}`;
+  r += `\nDate    : ${now.toLocaleDateString('en-IN')}  ${now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}`;
+  r += `\nCustomer: ${b.customer}${tableNo?' | '+tableNo:''}`;
+  r += `\nPayment : ${payMode}\n${ln}`;
+  r += `\n${'ITEM'.padEnd(18)}${'QTY'.padStart(4)}${'RATE'.padStart(7)}${'AMT'.padStart(8)}\n${ln}`;
+  b.cart.forEach(c => {
+    const nm = c.name.length>17 ? c.name.slice(0,17)+'.' : c.name;
+    r += `\n${nm.padEnd(18)}${String(c.qty).padStart(4)}${(cur+c.price).padStart(7)}${(cur+(c.price*c.qty)).padStart(8)}`;
+  });
+  r += `\n${ln}\n${'Sub Total'.padEnd(28)}${(cur+b.sub.toFixed(2)).padStart(10)}`;
+  if (b.disc>0) r += `\n${'Discount'.padEnd(28)}${('-'+cur+b.disc.toFixed(2)).padStart(10)}`;
+  if (S.taxEnabled) r += `\n${(S.taxName+' ('+S.taxRate+'%)').padEnd(28)}${(cur+b.tax.toFixed(2)).padStart(10)}`;
+  r += `\n${ln}\n${'TOTAL'.padEnd(28)}${(cur+b.grand.toFixed(2)).padStart(10)}\n${ln}`;
+  r += `\n${C(thankYou,38)}\n${C('*** Thank you! ***',38)}`;
+  document.getElementById('rcptTxt').textContent = r.trim();
+  document.getElementById('rcptModal').classList.add('open');
+}
+function buildPreviewBill() {
+  const dv=parseFloat(document.getElementById('discV').value)||0, dt=document.getElementById('discT').value;
+  const sub=cart.reduce((s,c)=>s+c.price*c.qty,0);
+  let disc=dt==='pct'?sub*(dv/100):dv; disc=Math.min(disc,sub);
+  const tax=S.taxEnabled?(sub-disc)*(S.taxRate/100):0;
+  return { cart, customer:document.getElementById('cName').value||'Guest', phone:document.getElementById('cPhone').value, table:document.getElementById('cTable').value, payMode:document.getElementById('payMode').value, sub, disc, tax, grand:sub-disc+tax, time:new Date().toISOString() };
+}
+function C(s,w){if(!s)return'';const p=Math.max(0,Math.floor((w-s.length)/2));return' '.repeat(p)+s;}
+
+// ── RIGHT TABS ────────────────────────────────────────────────────────────────
+function tab(t) {
+  rTab=t;
+  ['s','h','r'].forEach(x=>document.getElementById('tab-'+x).classList.toggle('on',x===t));
+  if(t==='s') renderSettings();
+  else if(t==='h') renderHistory();
+  else renderReports();
+}
+
+// ── SETTINGS TAB ──────────────────────────────────────────────────────────────
+function g(s, cam, snake) { return s[cam] !== undefined ? s[cam] : (s[snake] !== undefined ? s[snake] : ''); }
+function renderSettings() {
+  const bizName    = g(S,'bizName','biz_name')    || '';
+  const bizAddress = g(S,'bizAddress','biz_address') || '';
+  const bizPhone   = g(S,'bizPhone','biz_phone')   || '';
+  const billPrefix = g(S,'billPrefix','bill_prefix') || 'INV';
+  const taxEnabled = S.taxEnabled !== undefined ? S.taxEnabled : (S.tax_enabled !== undefined ? S.tax_enabled : true);
+  const taxName    = g(S,'taxName','tax_name')     || 'GST';
+  const taxRate    = S.taxRate !== undefined ? S.taxRate : (S.tax_rate !== undefined ? S.tax_rate : 5);
+  const thankYou   = g(S,'thankYou','thank_you')   || '';
+  document.getElementById('rpBody').innerHTML=`
+    <div class="sl">Business Info</div>
+    <div class="sr"><span>Biz Name</span><input class="si" value="${bizName}" onchange="updS('bizName',this.value)"></div>
+    <div class="sr"><span>Address</span><input class="si" value="${bizAddress}" onchange="updS('bizAddress',this.value)"></div>
+    <div class="sr"><span>Phone</span><input class="si" value="${bizPhone}" onchange="updS('bizPhone',this.value)"></div>
+    <div class="sr"><span>Bill Prefix</span><input class="si" style="width:78px" value="${billPrefix}" onchange="updS('billPrefix',this.value)"></div>
+    <div class="sl">Tax</div>
+    <div class="sr"><span>Enable Tax</span><button class="tog ${taxEnabled?'on':''}" onclick="S.taxEnabled=!taxEnabled;S.tax_enabled=S.taxEnabled;updS('taxEnabled',S.taxEnabled);renderSettings();calc()"></button></div>
+    <div class="sr"><span>Tax Name</span><input class="si" style="width:78px" value="${taxName}" onchange="updS('taxName',this.value)"></div>
+    <div class="sr"><span>Tax Rate (%)</span><input class="si" type="number" style="width:78px" value="${taxRate}" min="0" max="100" onchange="updS('taxRate',parseFloat(this.value)||0);calc()"></div>
+    <div class="sl">Receipt</div>
+    <div style="font-size:11.5px;color:var(--text2);margin-bottom:4px">Thank You Message</div>
+    <input class="si" style="width:100%;margin-bottom:12px" value="${thankYou}" onchange="updS('thankYou',this.value)">
+  `;
+}
+async function updS(k, v) {
+  S[k]=v;
+  // keep snake_case in sync too
+  const km = {bizName:'biz_name',bizAddress:'biz_address',bizPhone:'biz_phone',taxRate:'tax_rate',taxEnabled:'tax_enabled',taxName:'tax_name',thankYou:'thank_you',billPrefix:'bill_prefix'};
+  if (km[k]) S[km[k]] = v;
+  await api('PUT','/settings',{[k]:v});
+  if(k==='bizName') document.getElementById('biz-top').textContent=v;
+}
+
+// ── HISTORY TAB ───────────────────────────────────────────────────────────────
+async function renderHistory() {
+  const el=document.getElementById('rpBody');
+  el.innerHTML='<div style="text-align:center;padding:28px;color:var(--text3)">Loading…</div>';
+  const [bills,held]=await Promise.all([api('GET','/bills'),api('GET','/held')]);
+  if(!bills.length&&!held.length){el.innerHTML='<div style="text-align:center;padding:38px;color:var(--text3);font-size:13px">No bills yet</div>';return;}
+  let h='';
+  if(held.length){
+    h+=`<div class="sl">📌 Held</div>`;
+    h+=held.map(hb=>`<div class="hi" onclick="loadHeld(${hb.id})">
+      <div class="hi-top"><span class="hi-no">HELD</span><span class="hi-amt">${hb.customer}</span></div>
+      <div class="hi-meta">${hb.cart.length} items · ${new Date(hb.time).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
+    </div>`).join('');
+    h+=`<div class="sl">📋 Saved Bills</div>`;
+  }
+  h+=[...bills].reverse().map(b=>`<div class="hi">
+    <div class="hi-top"><span class="hi-no">#${String(b.no).padStart(3,'0')}</span><span class="hi-amt">${S.currency}${b.grand.toFixed(2)}</span></div>
+    <div class="hi-meta">${b.customer}${b.table?' · '+b.table:''} · ${b.payMode}</div>
+    <div class="hi-meta">${new Date(b.time).toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
+    <div style="display:flex;gap:5px;margin-top:5px">
+      <button class="mb edit" onclick="event.stopPropagation();viewBill(${b.no})">🧾 View</button>
+      <button class="mb del" onclick="event.stopPropagation();delBill(${b.no})">🗑 Del</button>
+    </div>
+  </div>`).join('');
+  el.innerHTML=h;
+}
+async function viewBill(no){const b=await api('GET','/bills/'+no);showReceipt(b);}
+async function delBill(no){if(!confirm(`Delete Bill #${String(no).padStart(3,'0')}?`))return;await api('DELETE','/bills/'+no);toast('🗑 Bill deleted');renderHistory();}
+async function loadHeld(id){
+  const held=await api('GET','/held');
+  const h=held.find(x=>x.id===id);if(!h)return;
+  if(cart.length&&!confirm('Replace current bill?'))return;
+  cart=[...h.cart];document.getElementById('cName').value=h.customer!=='Guest'?h.customer:'';document.getElementById('cTable').value=h.table||'';
+  await api('DELETE','/held/'+id);
+  renderCart();renderItems();calc();tab('s');
+}
+
+// ── REPORTS TAB ───────────────────────────────────────────────────────────────
+function renderReports() {
+  const today=new Date().toISOString().slice(0,10);
+  document.getElementById('rpBody').innerHTML=`
+    <div class="rep-filter">
+      <select id="rType" onchange="toggleDates()">
+        <option value="daily">Daily</option>
+        <option value="monthly">Monthly</option>
+        <option value="custom">Custom</option>
+      </select>
+      <input type="date" id="rFrom" value="${today}">
+      <input type="date" id="rTo" value="${today}" style="display:none">
+      <button class="btn btn-g" style="flex:0;padding:5px 12px;font-size:12.5px" onclick="loadReport()">Go</button>
+    </div>
+    <div id="repOut"><div style="text-align:center;padding:28px;color:var(--text3)">Select period & click Go</div></div>`;
+  loadReport();
+}
+function toggleDates(){const t=document.getElementById('rType').value;document.getElementById('rFrom').type=t==='monthly'?'month':'date';document.getElementById('rTo').style.display=t==='custom'?'':'none';}
+async function loadReport(){
+  const t=document.getElementById('rType')?.value||'daily';
+  const from=document.getElementById('rFrom')?.value||'';
+  const to=document.getElementById('rTo')?.value||from;
+  const d=await api('GET',`/reports?type=${t}&from=${from}&to=${to}`);
+  renderRepOutput(d, document.getElementById('repOut'), S.currency||'₹');
+}
+
+function renderRepOutput(d, el, cur) {
+  const {summary:sm,itemSales,catSales,payBreakdown,dailyTrend,hourlyPattern}=d;
+  if(!sm.totalBills){el.innerHTML='<div style="text-align:center;padding:30px;color:var(--text3);font-size:13px">No bills in this period</div>';return;}
+  const maxRev=itemSales.length?Math.max(...itemSales.map(i=>i.revenue)):1;
+  const maxDay=dailyTrend.length?Math.max(...dailyTrend.map(d=>d.revenue)):1;
+  let h=`<div class="stat-grid">
+    <div class="stat"><div class="stat-lbl">Revenue</div><div class="stat-val g">${cur}${sm.totalRevenue.toFixed(0)}</div></div>
+    <div class="stat"><div class="stat-lbl">Bills</div><div class="stat-val">${sm.totalBills}</div></div>
+    <div class="stat"><div class="stat-lbl">Avg Bill</div><div class="stat-val gold">${cur}${sm.avgBillValue.toFixed(0)}</div></div>
+    <div class="stat"><div class="stat-lbl">Tax</div><div class="stat-val">${cur}${sm.totalTax.toFixed(0)}</div></div>
+  </div>`;
+  if(dailyTrend.length>1){h+=`<div class="rep-section"><div class="rep-title">📈 Revenue Trend</div><div class="chart-wrap">${dailyTrend.map(d=>`<div class="bar-col"><div class="bar-rect" style="height:${Math.max(5,(d.revenue/maxDay)*100)}%"></div><div class="bar-lbl">${d.date.slice(5)}</div></div>`).join('')}</div></div>`;}
+  if(itemSales.length){h+=`<div class="rep-section"><div class="rep-title">🏆 Top Items</div>${itemSales.slice(0,6).map(it=>`<div class="rep-row"><div style="display:flex;justify-content:space-between"><span>${it.emoji} ${it.name}</span><span style="font-weight:600;color:var(--green)">${cur}${it.revenue.toFixed(0)}</span></div><div style="font-size:10.5px;color:var(--text3)">${it.qty} sold</div><div class="rep-bar"><div class="rep-bar-fill" style="width:${Math.round(it.revenue/maxRev*100)}%"></div></div></div>`).join('')}</div>`;}
+  if(catSales.length){const maxC=Math.max(...catSales.map(c=>c.revenue));h+=`<div class="rep-section"><div class="rep-title">📂 Categories</div>${catSales.map(c=>`<div class="rep-row"><div style="display:flex;justify-content:space-between"><span>${c.cat}</span><span style="font-weight:600">${cur}${c.revenue.toFixed(0)}</span></div><div class="rep-bar"><div class="rep-bar-fill" style="width:${Math.round(c.revenue/maxC*100)}%;background:var(--gold)"></div></div></div>`).join('')}</div>`;}
+  if(payBreakdown.length){h+=`<div class="rep-section"><div class="rep-title">💳 Payments</div>${payBreakdown.map(p=>`<div class="rep-row" style="display:flex;justify-content:space-between"><span>${p.mode}</span><div style="display:flex;gap:7px"><span style="color:var(--text3)">${p.count} bills</span><span style="font-weight:600">${cur}${p.revenue.toFixed(0)}</span></div></div>`).join('')}</div>`;}
+  if(hourlyPattern.length){const maxH=Math.max(...hourlyPattern.map(h=>h.revenue)||[1]);h+=`<div class="rep-section"><div class="rep-title">🕐 Peak Hours</div><div class="chart-wrap" style="height:90px">${Array.from({length:24},(_,hr)=>{const hd=hourlyPattern.find(x=>x.hour===hr);const pct=hd?Math.max(4,(hd.revenue/maxH)*100):0;const lbl=hr%6===0?(hr<12?`${hr||12}am`:`${hr===12?12:hr-12}pm`):'';return`<div class="bar-col"><div class="bar-rect" style="height:${pct}%;background:${hd?'var(--blue)':'var(--bdr)'}"></div><div class="bar-lbl">${lbl}</div></div>`;}).join('')}</div></div>`;}
+  el.innerHTML=h;
+}
+
+// ── MANAGE ITEMS ──────────────────────────────────────────────────────────────
+async function openManage(){items=await api('GET','/items');renderManageList();document.getElementById('manageModal').classList.add('open');}
+function renderManageList(){
+  document.getElementById('manageList').innerHTML=items.map(it=>`<div class="manage-row">
+    <span style="font-size:17px">${it.emoji}</span>
+    <span class="mn">${it.name}</span>
+    <span class="mp">${S.currency}${it.price}</span>
+    <span style="font-size:10.5px;color:var(--text3);background:var(--bg);padding:2px 6px;border-radius:4px">${it.cat}</span>
+    <button class="mb edit" onclick="openEdit(${it.id})">✏️</button>
+    <button class="mb del" onclick="delItem(${it.id})">🗑</button>
+  </div>`).join('');
+}
+async function addItem(){
+  const emoji=document.getElementById('nEmoji').value||'🛒';
+  const name=document.getElementById('nName').value.trim();
+  const price=parseFloat(document.getElementById('nPrice').value);
+  const cat=document.getElementById('nCat').value;
+  if(!name||!price){alert('Enter name and price');return;}
+  const res=await api('POST','/items',{name,price,cat,emoji});
+  if(res.success){items.push(res.item);document.getElementById('nName').value='';document.getElementById('nPrice').value='';document.getElementById('nEmoji').value='';renderManageList();renderCats();renderItems();toast('✅ Item added');}
+}
+function openEdit(id){
+  const it=items.find(i=>i.id===id);if(!it)return;editId=id;
+  const cats=['Food','Drink','Grocery','Snack','Dessert','Other',...new Set(items.map(i=>i.cat))];
+  document.getElementById('editForm').innerHTML=`
+    <input id="eEmoji" placeholder="Emoji" value="${it.emoji}" style="max-width:52px;border:1.5px solid var(--bdr);border-radius:6px;padding:6px 8px;font:inherit">
+    <input id="eName" placeholder="Name" value="${it.name}" style="flex:1;border:1.5px solid var(--bdr);border-radius:6px;padding:6px 8px;font:inherit">
+    <input id="ePrice" type="number" placeholder="Price" value="${it.price}" style="max-width:88px;border:1.5px solid var(--bdr);border-radius:6px;padding:6px 8px;font:inherit">
+    <select id="eCat" style="border:1.5px solid var(--bdr);border-radius:6px;padding:6px 8px;font:inherit">${[...new Set(cats)].map(c=>`<option ${c===it.cat?'selected':''}>${c}</option>`).join('')}</select>`;
+  document.getElementById('editModal').classList.add('open');
+}
+async function saveEdit(){
+  const emoji=document.getElementById('eEmoji').value||'🛒';
+  const name=document.getElementById('eName').value.trim();
+  const price=parseFloat(document.getElementById('ePrice').value);
+  const cat=document.getElementById('eCat').value;
+  if(!name||!price){alert('Fill all fields');return;}
+  const res=await api('PUT','/items/'+editId,{name,price,cat,emoji});
+  if(res.success){const idx=items.findIndex(i=>i.id===editId);items[idx]=res.item;cart.forEach(c=>{if(c.id===editId){c.name=name;c.price=price;c.emoji=emoji;c.cat=cat;}});renderManageList();renderCats();renderItems();renderCart();calc();closeM('editModal');toast('✅ Updated');}
+}
+async function delItem(id){if(!confirm('Delete item?'))return;await api('DELETE','/items/'+id);items=items.filter(i=>i.id!==id);cart=cart.filter(c=>c.id!==id);renderManageList();renderCats();renderItems();renderCart();calc();toast('🗑 Deleted');}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ADMIN DASHBOARD
+// ══════════════════════════════════════════════════════════════════════════════
+let adminClients=[], aTab='overview';
+async function initAdmin(){adminTab('overview');}
+
+function adminTab(t){
+  aTab=t;
+  ['overview','clients','reports'].forEach(x=>document.getElementById('anav-'+x).classList.toggle('on',x===t));
+  if(t==='overview') renderAdminOverview();
+  else if(t==='clients') renderAdminClients();
+  else renderAdminReports();
+}
+
+async function renderAdminOverview(){
+  const el=document.getElementById('adminBody');
+  el.innerHTML='<div style="color:var(--text3);padding:30px;text-align:center">Loading…</div>';
+  adminClients=await api('GET','/admin/clients');
+  const totalRev=adminClients.reduce((s,c)=>s+c.totalRevenue,0);
+  const totalBills=adminClients.reduce((s,c)=>s+c.billCount,0);
+  const verified=adminClients.filter(c=>c.verified).length;
+  el.innerHTML=`
+    <div class="admin-title">Platform Overview</div>
+    <div class="admin-sub">All clients · All time data</div>
+    <div class="cards-row">
+      <div class="card"><div class="card-lbl">Total Clients</div><div class="card-val blue">${adminClients.length}</div></div>
+      <div class="card"><div class="card-lbl">Verified</div><div class="card-val g">${verified}</div></div>
+      <div class="card"><div class="card-lbl">Total Bills</div><div class="card-val">${totalBills}</div></div>
+      <div class="card"><div class="card-lbl">Total Revenue</div><div class="card-val gold">₹${totalRev.toFixed(0)}</div></div>
+    </div>
+    <div class="section-title">Client Performance</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:22px">
+      ${adminClients.length ? adminClients.map(c=>`
+        <div class="admin-client-card" onclick="adminViewClient('${c.id}')">
+          <div style="display:flex;justify-content:space-between;align-items:start">
+            <div><h4>${c.biz_name||c.bizName}</h4><p>${c.name} · ${c.email}</p></div>
+            <span class="status-badge ${c.verified?'verified':'pending'}">${c.verified?'Active':'Pending'}</span>
+          </div>
+          <div style="display:flex;gap:14px;margin-top:10px;font-size:12px;color:var(--text3)">
+            <span>📦 ${c.itemCount} items</span><span>🧾 ${c.billCount} bills</span>
+          </div>
+          <div class="card-rev">₹${c.totalRevenue.toFixed(0)}</div>
+        </div>`).join('') : '<div style="color:var(--text3);font-size:13.5px">No clients registered yet.</div>'}
+    </div>`;
+}
+
+async function renderAdminClients(){
+  const el=document.getElementById('adminBody');
+  el.innerHTML='<div style="color:var(--text3);padding:30px;text-align:center">Loading…</div>';
+  adminClients=await api('GET','/admin/clients');
+  el.innerHTML=`
+    <div class="admin-title">Client Management</div>
+    <div class="admin-sub">Manage all registered client accounts</div>
+    <div class="clients-table">
+      <div class="ct-head">
+        <div>Business / Owner</div><div>Email</div><div>Bills</div><div>Revenue</div><div>Status</div><div>Actions</div>
+      </div>
+      ${adminClients.length ? adminClients.map(c=>`
+        <div class="ct-row">
+          <div><div style="font-weight:500">${c.biz_name||c.bizName||''}</div><div style="font-size:12px;color:var(--text3)">${c.name}</div></div>
+          <div style="font-size:13px;color:var(--text2)">${c.email}</div>
+          <div style="font-size:13px">${c.billCount}</div>
+          <div style="font-size:13px;font-weight:500;color:var(--green)">₹${c.totalRevenue.toFixed(0)}</div>
+          <div><span class="status-badge ${c.verified?'verified':'pending'}">${c.verified?'Verified':'Pending'}</span></div>
+          <div class="ct-actions">
+            ${!c.verified?`<button class="mb edit" onclick="verifyClient('${c.id}')">✓ Verify</button>`:''}
+            <button class="mb edit" onclick="adminViewClient('${c.id}')">View</button>
+            <button class="mb del" onclick="deleteClient('${c.id}')">Del</button>
+          </div>
+        </div>`).join('') : '<div style="padding:24px;color:var(--text3);text-align:center">No clients yet</div>'}
+    </div>`;
+}
+
+async function verifyClient(id){
+  await api('PUT','/admin/clients/'+id+'/verify');
+  toast('✅ Client verified'); renderAdminClients();
+}
+async function deleteClient(id){
+  if(!confirm('Delete this client and ALL their data?'))return;
+  await api('DELETE','/admin/clients/'+id);
+  toast('🗑 Client deleted'); renderAdminClients();
+}
+async function adminViewClient(id){
+  const c=await api('GET','/admin/clients/'+id);
+  const rev=c.bills.reduce((s,b)=>s+b.grand,0);
+  const today=new Date().toDateString();
+  const todayRev=c.bills.filter(b=>new Date(b.time).toDateString()===today).reduce((s,b)=>s+b.grand,0);
+  const panel=document.createElement('div');
+  panel.className='overlay open';
+  panel.innerHTML=`<div class="modal" style="width:560px;max-height:85vh;overflow-y:auto">
+    <h2>🏪 ${c.biz_name||c.bizName} <small style="font-size:.75rem;font-weight:400;color:var(--text3)">${c.name}</small></h2>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+      <div class="stat"><div class="stat-lbl">Total Revenue</div><div class="stat-val g">₹${rev.toFixed(0)}</div></div>
+      <div class="stat"><div class="stat-lbl">Today</div><div class="stat-val gold">₹${todayRev.toFixed(0)}</div></div>
+      <div class="stat"><div class="stat-lbl">Total Bills</div><div class="stat-val">${c.bills.length}</div></div>
+    </div>
+    <div style="font-size:12px;font-weight:600;text-transform:uppercase;color:var(--text3);margin-bottom:8px">Recent Bills</div>
+    <div style="max-height:200px;overflow-y:auto">
+      ${c.bills.length ? [...c.bills].reverse().slice(0,15).map(b=>`
+        <div style="display:flex;justify-content:space-between;padding:7px 10px;background:var(--bg);border-radius:6px;margin-bottom:5px;font-size:13px">
+          <span>#${String(b.no).padStart(3,'0')} · ${b.customer}</span>
+          <span style="font-weight:600;color:var(--green)">₹${b.grand.toFixed(2)}</span>
+        </div>`).join('') : '<div style="color:var(--text3);text-align:center;padding:16px">No bills yet</div>'}
+    </div>
+    <div style="font-size:12px;font-weight:600;text-transform:uppercase;color:var(--text3);margin:14px 0 8px">Items (${c.items.length})</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;max-height:120px;overflow-y:auto">
+      ${c.items.map(i=>`<div style="background:var(--bg);padding:5px 10px;border-radius:6px;font-size:12.5px">${i.emoji} ${i.name} · <strong style="color:var(--green)">₹${i.price}</strong></div>`).join('')}
+    </div>
+    <div class="modal-acts"><button class="btn btn-o" onclick="this.closest('.overlay').remove()">Close</button></div>
+  </div>`;
+  panel.addEventListener('click',e=>{if(e.target===panel)panel.remove();});
+  document.body.appendChild(panel);
+}
+
+async function renderAdminReports(){
+  const el=document.getElementById('adminBody');
+  adminClients=await api('GET','/admin/clients');
+  const today=new Date().toISOString().slice(0,10);
+  el.innerHTML=`
+    <div class="admin-title">Platform Reports</div>
+    <div class="admin-sub">Aggregated and per-client analytics</div>
+    <div class="admin-rep-filter">
+      <select id="arType" onchange="toggleAdminDates()">
+        <option value="daily">Daily</option>
+        <option value="monthly">Monthly</option>
+        <option value="custom">Custom Range</option>
+      </select>
+      <input type="date" id="arFrom" value="${today}">
+      <input type="date" id="arTo" value="${today}" style="display:none">
+      <select id="arClient">
+        <option value="">All Clients</option>
+        ${adminClients.map(c=>`<option value="${c.id}">${c.bizName}</option>`).join('')}
+      </select>
+      <button class="btn btn-g" style="flex:0;padding:6px 14px;font-size:13px" onclick="loadAdminReport()">Go</button>
+    </div>
+    <div id="adminRepOut"><div style="color:var(--text3);text-align:center;padding:28px">Select period and click Go</div></div>`;
+  loadAdminReport();
+}
+function toggleAdminDates(){const t=document.getElementById('arType').value;document.getElementById('arFrom').type=t==='monthly'?'month':'date';document.getElementById('arTo').style.display=t==='custom'?'':'none';}
+async function loadAdminReport(){
+  const type=document.getElementById('arType').value;
+  const from=document.getElementById('arFrom').value;
+  const to=document.getElementById('arTo').value||from;
+  const clientId=document.getElementById('arClient').value;
+  const params=new URLSearchParams({type,from,to,clientId});
+  const d=await api('GET','/admin/reports?'+params);
+  const el=document.getElementById('adminRepOut');
+  const cur='₹';
+  const {overall,perClient}=d;
+  let h=`<div class="section-title">Overall Summary <span>(${perClient.length} client${perClient.length!==1?'s':''})</span></div>`;
+  h+=`<div class="admin-cards">
+    <div class="card"><div class="card-lbl">Total Revenue</div><div class="card-val g">${cur}${overall.summary.totalRevenue.toFixed(0)}</div></div>
+    <div class="card"><div class="card-lbl">Total Bills</div><div class="card-val">${overall.summary.totalBills}</div></div>
+    <div class="card"><div class="card-lbl">Avg Bill</div><div class="card-val gold">${cur}${overall.summary.avgBillValue.toFixed(0)}</div></div>
+    <div class="card"><div class="card-lbl">Tax Collected</div><div class="card-val">${cur}${overall.summary.totalTax.toFixed(0)}</div></div>
+  </div>`;
+  if(overall.summary.totalBills>0){
+    h+=`<div class="two-col">`;
+    if(overall.itemSales.length){const maxR=Math.max(...overall.itemSales.map(i=>i.revenue));h+=`<div class="panel-box"><div class="section-title" style="font-size:13px">🏆 Top Items (All Clients)</div>${overall.itemSales.slice(0,8).map(it=>`<div class="rep-row"><div style="display:flex;justify-content:space-between"><span>${it.emoji} ${it.name}</span><span style="font-weight:600;color:var(--green)">${cur}${it.revenue.toFixed(0)}</span></div><div style="font-size:11px;color:var(--text3)">${it.qty} sold</div><div class="rep-bar"><div class="rep-bar-fill" style="width:${Math.round(it.revenue/maxR*100)}%"></div></div></div>`).join('')}</div>`;}
+    if(overall.payBreakdown.length){h+=`<div class="panel-box"><div class="section-title" style="font-size:13px">💳 Payment Modes</div>${overall.payBreakdown.map(p=>`<div class="rep-row" style="display:flex;justify-content:space-between"><span>${p.mode}</span><div style="display:flex;gap:8px"><span style="color:var(--text3)">${p.count} bills</span><span style="font-weight:600">${cur}${p.revenue.toFixed(0)}</span></div></div>`).join('')}</div>`;}
+    h+=`</div>`;
+    if(overall.dailyTrend.length>1){const maxD=Math.max(...overall.dailyTrend.map(d=>d.revenue));h+=`<div class="panel-box" style="margin-bottom:18px"><div class="section-title" style="font-size:13px">📈 Revenue Trend</div><div class="chart-wrap" style="height:130px">${overall.dailyTrend.map(d=>`<div class="bar-col"><div class="bar-rect" style="height:${Math.max(4,(d.revenue/maxD)*100)}%"></div><div class="bar-lbl">${d.date.slice(5)}</div></div>`).join('')}</div></div>`;}
+  }
+  if(perClient.length>0&&!clientId){
+    h+=`<div class="section-title">Per Client Breakdown</div>`;
+    const sorted=[...perClient].sort((a,b)=>b.summary.totalRevenue-a.summary.totalRevenue);
+    h+=`<div class="clients-table"><div class="ct-head" style="grid-template-columns:1fr 90px 90px 90px 90px"><div>Client</div><div>Bills</div><div>Revenue</div><div>Avg Bill</div><div>Tax</div></div>`;
+    h+=sorted.map(c=>`<div class="ct-row" style="grid-template-columns:1fr 90px 90px 90px 90px">
+      <div><div style="font-weight:500">${c.client.bizName||''}</div><div style="font-size:11.5px;color:var(--text3)">${c.client.name}</div></div>
+      <div>${c.summary.totalBills}</div>
+      <div style="font-weight:600;color:var(--green)">${cur}${c.summary.totalRevenue.toFixed(0)}</div>
+      <div style="color:var(--gold)">${cur}${c.summary.avgBillValue.toFixed(0)}</div>
+      <div>${cur}${c.summary.totalTax.toFixed(0)}</div>
+    </div>`).join('');
+    h+=`</div>`;
+  }
+  if(!overall.summary.totalBills){h='<div style="text-align:center;padding:36px;color:var(--text3)">No bills found for this period across any client</div>';}
+  el.innerHTML=h;
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function closeM(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2500);}
+</script>
+</body>
+</html>
