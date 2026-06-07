@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>BillEase — Supermarket</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f7f5;--surf:#fff;--surf2:#eef2ee;
+  --grn:#1a6b3a;--grn2:#27a356;--grn-lt:#e8f5ee;
+  --orange:#d4620a;--orange-lt:#fef0e6;
+  --blue:#1a4fa0;--blue-lt:#e8effe;
+  --red:#c0392b;--red-lt:#fdecea;
+  --gold:#c8852a;--gold-lt:#fdf3e3;
+  --purple:#6b3fa0;--purple-lt:#f0eaff;
+  --text:#1a1a18;--text2:#5a5a50;--text3:#9a9a8a;
+  --bdr:#d8dcd8;--r:12px;--rsm:8px;
+  --shadow:0 2px 16px rgba(0,0,0,.07);
+  --top-h:54px;--bot-h:62px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px}
+input,select,button,textarea{font-family:inherit}
+a{color:var(--grn);text-decoration:none}
+
+/* ── TOPBAR ── */
+.top{background:var(--grn);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:var(--top-h);position:sticky;top:0;z-index:90;flex-shrink:0}
+.logo{font-family:'DM Serif Display',serif;font-size:1.25rem;display:flex;align-items:center;gap:8px}
+.logo .tag{background:rgba(255,255,255,.2);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;padding:2px 8px;border-radius:10px;margin-left:4px}
+.top-btns{display:flex;gap:6px;align-items:center}
+.tbtn{background:rgba(255,255,255,.15);border:none;color:#fff;padding:5px 12px;border-radius:20px;font-size:12.5px;cursor:pointer;transition:.2s;white-space:nowrap;font-weight:500}
+.tbtn:hover{background:rgba(255,255,255,.28)}
+.tbtn.orange{background:var(--orange)}
+.tbtn.red{background:var(--red)}
+.user-chip{display:flex;align-items:center;gap:6px;font-size:12.5px;background:rgba(255,255,255,.12);padding:4px 10px;border-radius:20px}
+.uav{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+
+/* ── TABS ── */
+.page-tabs{background:var(--surf);border-bottom:2px solid var(--bdr);display:flex;padding:0;overflow-x:auto;scrollbar-width:none;flex-shrink:0}
+.page-tabs::-webkit-scrollbar{display:none}
+.ptab{padding:12px 20px;font-size:13.5px;font-weight:500;color:var(--text2);border:none;background:none;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:.2s;margin-bottom:-2px}
+.ptab.on{color:var(--grn);border-bottom-color:var(--grn)}
+.ptab .badge{background:var(--red);color:#fff;border-radius:10px;font-size:10px;padding:1px 5px;margin-left:5px;vertical-align:middle}
+
+/* ── LAYOUT ── */
+.app-shell{display:flex;flex-direction:column;height:calc(100vh - var(--top-h))}
+.tab-content{flex:1;overflow:hidden;display:none}
+.tab-content.active{display:flex;flex-direction:column}
+
+/* ══════════════════════════════════
+   BILLING TAB — 3 panel layout
+══════════════════════════════════ */
+.bill-layout{display:flex;flex:1;overflow:hidden;gap:0}
+
+/* LEFT: product catalog */
+.prod-panel{width:320px;min-width:280px;background:var(--surf);border-right:1px solid var(--bdr);display:flex;flex-direction:column;overflow:hidden}
+.prod-search{padding:10px 12px;border-bottom:1px solid var(--bdr);display:flex;gap:8px;align-items:center}
+.prod-search input{flex:1;padding:8px 11px;border:1.5px solid var(--bdr);border-radius:var(--rsm);font-size:13.5px;outline:none;background:var(--bg);transition:.2s}
+.prod-search input:focus{border-color:var(--grn2);background:#fff}
+.prod-cats{display:flex;gap:5px;padding:8px 12px;overflow-x:auto;border-bottom:1px solid var(--bdr);scrollbar-width:none;flex-shrink:0}
+.prod-cats::-webkit-scrollbar{display:none}
+.pcat{white-space:nowrap;padding:4px 11px;border-radius:20px;border:1.5px solid var(--bdr);background:transparent;font-size:12px;cursor:pointer;color:var(--text2);transition:.2s}
+.pcat.on{background:var(--grn);border-color:var(--grn);color:#fff}
+.prod-filter{display:flex;gap:6px;padding:6px 12px;border-bottom:1px solid var(--bdr);flex-shrink:0}
+.fchip{padding:3px 10px;border-radius:20px;border:1.5px solid var(--bdr);font-size:11.5px;cursor:pointer;color:var(--text2);background:transparent;transition:.2s}
+.fchip.on{color:#fff}
+.fchip.loose.on{background:var(--orange);border-color:var(--orange)}
+.fchip.packet.on{background:var(--blue);border-color:var(--blue)}
+.prod-grid{flex:1;overflow-y:auto;padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:start}
+.pc{background:var(--bg);border:1.5px solid transparent;border-radius:var(--rsm);padding:10px;cursor:pointer;transition:.15s;position:relative;user-select:none}
+.pc:hover{border-color:var(--grn2);background:var(--grn-lt)}
+.pc:active{transform:scale(.97)}
+.pc .ptype{position:absolute;top:6px;right:6px;font-size:9px;font-weight:600;padding:1px 5px;border-radius:6px;text-transform:uppercase}
+.pc .ptype.loose{background:var(--orange-lt);color:var(--orange)}
+.pc .ptype.packet{background:var(--blue-lt);color:var(--blue)}
+.pc .pem{font-size:22px;margin-bottom:3px}
+.pc .pname{font-size:12.5px;font-weight:500;line-height:1.3;margin-bottom:2px}
+.pc .pbrand{font-size:10.5px;color:var(--text3)}
+.pc .pprice{font-size:12px;color:var(--grn);font-weight:600;margin-top:3px}
+.pc .pstock{font-size:10px;color:var(--text3);margin-top:1px}
+.pc.low-stock{border-color:var(--orange)!important}
+.pc .ic-badge{position:absolute;top:5px;left:5px;background:var(--grn);color:#fff;border-radius:50%;width:18px;height:18px;font-size:9px;display:flex;align-items:center;justify-content:center;font-weight:700}
+
+/* CENTER: bill */
+.bill-center{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.bill-hdr{padding:10px 14px;background:var(--surf);border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0}
+.bill-no-chip{font-size:12.5px;font-weight:600;color:var(--grn);background:var(--grn-lt);padding:4px 10px;border-radius:20px}
+.bmeta{display:flex;align-items:center;gap:4px;font-size:12.5px;color:var(--text2)}
+.bmeta input{border:1.5px solid var(--bdr);border-radius:6px;padding:4px 7px;font-size:12.5px;color:var(--text);outline:none;background:var(--bg);width:108px}
+.bmeta input:focus{border-color:var(--grn2)}
+.bill-items{flex:1;overflow-y:auto;padding:10px 14px}
+.bill-empty{text-align:center;padding:48px 20px;color:var(--text3)}
+.bill-empty .ei{font-size:42px;margin-bottom:10px}
+
+/* Bill item rows */
+.bill-item{background:var(--surf);border:1.5px solid var(--bdr);border-radius:var(--rsm);padding:10px 12px;margin-bottom:8px;transition:.15s}
+.bill-item:hover{border-color:var(--grn2)}
+.bi-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.bi-emoji{font-size:20px;flex-shrink:0}
+.bi-name{flex:1;font-size:13.5px;font-weight:500}
+.bi-type{font-size:10px;font-weight:600;padding:2px 6px;border-radius:6px;text-transform:uppercase;flex-shrink:0}
+.bi-type.loose{background:var(--orange-lt);color:var(--orange)}
+.bi-type.packet{background:var(--blue-lt);color:var(--blue)}
+.bi-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:2px;border-radius:4px;transition:.2s;flex-shrink:0}
+.bi-del:hover{color:var(--red)}
+.bi-bottom{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:center}
+.qty-block{display:flex;flex-direction:column;gap:3px}
+.qty-label{font-size:10.5px;color:var(--text3);font-weight:500}
+/* loose qty input */
+.loose-qty{display:flex;align-items:center;gap:4px}
+.loose-qty input{width:70px;border:1.5px solid var(--bdr);border-radius:6px;padding:5px 7px;font-size:13px;outline:none;background:var(--bg);text-align:center}
+.loose-qty input:focus{border-color:var(--grn2)}
+.loose-qty .unit-lbl{font-size:11.5px;color:var(--text2);font-weight:500;background:var(--bg);padding:4px 7px;border:1.5px solid var(--bdr);border-radius:6px}
+/* packet qty controls */
+.pkt-qty{display:flex;align-items:center;gap:5px}
+.qb{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--bdr);background:var(--surf);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text);transition:.15s;font-weight:500;touch-action:manipulation}
+.qb:hover,.qb:active{border-color:var(--grn);color:var(--grn)}
+.qv{min-width:28px;text-align:center;font-weight:600;font-size:14px}
+.bi-rate{font-size:12.5px;color:var(--text2)}
+.bi-amt{font-size:14px;font-weight:600;color:var(--grn);text-align:right}
+
+/* Bill footer */
+.bill-foot{background:var(--surf);border-top:1px solid var(--bdr);padding:10px 14px;flex-shrink:0}
+.totals-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;margin-bottom:8px}
+.tot-row{display:flex;justify-content:space-between;font-size:13px;color:var(--text2);padding:2px 0}
+.tot-row.grand{font-size:16px;font-weight:700;color:var(--text);padding-top:7px;border-top:2px solid var(--bdr);margin-top:3px}
+.tot-row.grand span:last-child{color:var(--grn)}
+.disc-row{display:flex;gap:6px;align-items:center;margin-bottom:8px}
+.disc-row input,.disc-row select{border:1.5px solid var(--bdr);border-radius:6px;padding:5px 7px;font-size:12.5px;outline:none;background:var(--bg)}
+.disc-row input{width:72px}.disc-row select{width:86px}
+.bill-acts{display:flex;gap:6px}
+.btn{flex:1;padding:10px 6px;border:none;border-radius:var(--rsm);font-size:13px;font-weight:500;cursor:pointer;transition:.15s;touch-action:manipulation}
+.btn:active{transform:scale(.98)}
+.btn-o{background:transparent;border:1.5px solid var(--bdr);color:var(--text2)}
+.btn-o:hover{border-color:var(--grn);color:var(--grn)}
+.btn-r{background:var(--red-lt);color:var(--red);border:none}
+.btn-r:hover{background:var(--red);color:#fff}
+.btn-g{background:var(--grn);color:#fff}
+.btn-g:hover{background:var(--grn2)}
+.btn-orange{background:var(--orange);color:#fff}
+
+/* RIGHT: quick panel */
+.quick-panel{width:280px;min-width:250px;background:var(--surf);border-left:1px solid var(--bdr);display:flex;flex-direction:column;overflow:hidden}
+.qp-head{padding:12px;border-bottom:1px solid var(--bdr);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);flex-shrink:0}
+.qp-body{flex:1;overflow-y:auto;padding:10px}
+.qp-section{margin-bottom:16px}
+.qp-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:7px}
+.stat-box{background:var(--bg);border-radius:var(--rsm);padding:10px;text-align:center;margin-bottom:6px}
+.stat-lbl{font-size:10.5px;color:var(--text3);margin-bottom:3px;font-weight:500}
+.stat-val{font-size:18px;font-weight:600;color:var(--text)}
+.stat-val.g{color:var(--grn)}
+.low-item{display:flex;justify-content:space-between;align-items:center;padding:7px 9px;background:var(--orange-lt);border-radius:6px;margin-bottom:5px;font-size:12.5px;border-left:3px solid var(--orange)}
+.low-item .li-name{font-weight:500;flex:1}
+.low-item .li-stock{color:var(--orange);font-weight:600;font-size:12px}
+
+/* ══════════════════════════════════
+   PRODUCTS TAB
+══════════════════════════════════ */
+.products-page{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.prod-toolbar{padding:12px 16px;background:var(--surf);border-bottom:1px solid var(--bdr);display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0}
+.prod-toolbar input{flex:1;min-width:160px;padding:8px 11px;border:1.5px solid var(--bdr);border-radius:var(--rsm);font-size:13.5px;outline:none;background:var(--bg)}
+.prod-toolbar input:focus{border-color:var(--grn2)}
+.prod-toolbar select{border:1.5px solid var(--bdr);border-radius:var(--rsm);padding:7px 10px;font-size:13px;outline:none;background:var(--bg);color:var(--text)}
+.prod-list{flex:1;overflow-y:auto;padding:14px 16px}
+.prod-card{background:var(--surf);border:1.5px solid var(--bdr);border-radius:var(--rsm);padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;transition:.15s}
+.prod-card:hover{border-color:var(--grn2);box-shadow:var(--shadow)}
+.prod-card.low-stock-card{border-color:var(--orange)}
+.prod-card .pc-emoji{font-size:28px;flex-shrink:0}
+.prod-card .pc-info{flex:1;min-width:0}
+.prod-card .pc-name{font-size:14px;font-weight:600;margin-bottom:2px;display:flex;align-items:center;gap:6px}
+.prod-card .pc-meta{font-size:12px;color:var(--text3);margin-bottom:5px}
+.prod-card .pc-stats{display:flex;gap:12px;font-size:12.5px}
+.prod-card .pc-price{color:var(--grn);font-weight:600}
+.prod-card .pc-stock{color:var(--text2)}
+.prod-card .pc-stock.low{color:var(--orange);font-weight:600}
+.prod-card .pc-actions{display:flex;gap:6px;flex-shrink:0}
+.type-pill{font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;text-transform:uppercase}
+.type-pill.loose{background:var(--orange-lt);color:var(--orange)}
+.type-pill.packet{background:var(--blue-lt);color:var(--blue)}
+.act-btn{padding:5px 10px;border-radius:6px;border:none;font-size:12px;cursor:pointer;transition:.15s;font-weight:500}
+.act-btn.edit{background:var(--grn-lt);color:var(--grn)}
+.act-btn.edit:hover{background:var(--grn);color:#fff}
+.act-btn.del{background:var(--red-lt);color:var(--red)}
+.act-btn.del:hover{background:var(--red);color:#fff}
+.act-btn.stock{background:var(--blue-lt);color:var(--blue)}
+.act-btn.stock:hover{background:var(--blue);color:#fff}
+
+/* ══════════════════════════════════
+   REPORTS TAB
+══════════════════════════════════ */
+.reports-page{flex:1;overflow-y:auto;padding:16px}
+.rep-filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+.rep-filter select,.rep-filter input{border:1.5px solid var(--bdr);border-radius:6px;padding:6px 9px;font-size:13px;outline:none;background:var(--bg);color:var(--text)}
+.rep-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.rep-card{background:var(--surf);border-radius:var(--r);padding:16px;box-shadow:var(--shadow);text-align:center}
+.rep-card-lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:5px}
+.rep-card-val{font-size:22px;font-weight:700;color:var(--text)}
+.rep-card-val.g{color:var(--grn)}.rep-card-val.gold{color:var(--gold)}
+.rep-row{padding:8px 10px;background:var(--bg);border-radius:6px;margin-bottom:5px;font-size:13px}
+.rep-bar{height:5px;background:var(--grn-lt);border-radius:3px;margin-top:4px}
+.rep-bar-fill{height:100%;background:var(--grn);border-radius:3px;transition:.4s}
+.chart-wrap{background:var(--bg);border-radius:var(--rsm);padding:10px;margin-bottom:14px;height:130px;display:flex;align-items:flex-end;gap:3px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px}
+.bar-rect{width:100%;background:var(--grn);border-radius:3px 3px 0 0;min-height:2px;transition:.4s}
+.bar-lbl{font-size:8px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center}
+.two-col-rep{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+.rep-panel{background:var(--surf);border-radius:var(--r);padding:16px;box-shadow:var(--shadow)}
+.rep-panel-title{font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text)}
+
+/* ══ HISTORY TAB ══ */
+.history-page{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.hist-toolbar{padding:10px 16px;background:var(--surf);border-bottom:1px solid var(--bdr);display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0}
+.hist-toolbar input,.hist-toolbar select{border:1.5px solid var(--bdr);border-radius:6px;padding:7px 10px;font-size:13px;outline:none;background:var(--bg)}
+.hist-list{flex:1;overflow-y:auto;padding:12px 16px}
+.hist-item{background:var(--surf);border:1.5px solid var(--bdr);border-radius:var(--rsm);padding:12px 14px;margin-bottom:8px;transition:.15s}
+.hist-item:hover{border-color:var(--grn2)}
+.hist-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.hist-no{font-size:13px;font-weight:600;color:var(--grn)}
+.hist-amt{font-size:15px;font-weight:700}
+.hist-meta{font-size:12px;color:var(--text3)}
+.hist-acts{display:flex;gap:6px;margin-top:8px}
+
+/* ══ MODALS ══ */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:16px}
+.overlay.open{display:flex}
+.modal{background:var(--surf);border-radius:var(--r);padding:24px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal-lg{max-width:560px}
+.modal h2{font-family:'DM Serif Display',serif;font-size:1.2rem;margin-bottom:16px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group label{font-size:12px;font-weight:500;color:var(--text2)}
+.form-group input,.form-group select,.form-group textarea{border:1.5px solid var(--bdr);border-radius:6px;padding:8px 10px;font-size:13.5px;outline:none;background:var(--bg);color:var(--text);transition:.2s}
+.form-group input:focus,.form-group select:focus{border-color:var(--grn2);background:#fff}
+.form-group.full{grid-column:1/-1}
+.modal-acts{display:flex;gap:8px;margin-top:16px}
+.receipt-txt{font-family:'Courier New',monospace;font-size:12px;background:#fffef9;border:1px solid var(--bdr);border-radius:8px;padding:15px;white-space:pre;line-height:1.65;overflow-x:auto;margin-bottom:4px}
+
+/* qty input modal */
+.qty-modal-product{display:flex;align-items:center;gap:12px;background:var(--bg);border-radius:var(--rsm);padding:14px;margin-bottom:16px}
+.qty-modal-info h3{font-size:15px;font-weight:600;margin-bottom:3px}
+.qty-modal-info p{font-size:13px;color:var(--text2)}
+.qty-input-wrap{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.qty-input-big{font-size:24px;font-weight:600;width:120px;text-align:center;border:2px solid var(--bdr);border-radius:var(--rsm);padding:10px;outline:none}
+.qty-input-big:focus{border-color:var(--grn2)}
+.unit-select{border:1.5px solid var(--bdr);border-radius:6px;padding:8px 10px;font-size:14px;outline:none;background:var(--bg)}
+.preset-btns{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.preset-btn{padding:6px 12px;border-radius:20px;border:1.5px solid var(--bdr);background:var(--bg);font-size:12.5px;cursor:pointer;transition:.2s;font-weight:500}
+.preset-btn:hover{border-color:var(--grn);color:var(--grn);background:var(--grn-lt)}
+.calc-price{background:var(--grn-lt);border-radius:var(--rsm);padding:10px 14px;font-size:14px;font-weight:600;color:var(--grn);text-align:center;margin-bottom:4px}
+
+/* Toast */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--grn);color:#fff;padding:9px 20px;border-radius:20px;font-size:13.5px;z-index:999;box-shadow:0 4px 18px rgba(0,0,0,.14);pointer-events:none;white-space:nowrap}
+
+/* ══ MOBILE ══ */
+.mob-nav{display:none;background:var(--surf);border-top:1px solid var(--bdr);height:var(--bot-h);flex-shrink:0}
+.mob-nav-inner{display:flex;height:100%}
+.mnb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:transparent;cursor:pointer;color:var(--text3);font-size:10px;font-weight:500;transition:.2s;touch-action:manipulation}
+.mnb .icon{font-size:20px}
+.mnb.on{color:var(--grn)}
+.mob-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:80}
+.mob-overlay.open{display:block}
+.slide-panel{position:fixed;top:calc(var(--top-h) + 42px);bottom:var(--bot-h);width:88vw;max-width:340px;background:var(--surf);z-index:85;display:flex;flex-direction:column;overflow:hidden;transition:transform .3s cubic-bezier(.4,0,.2,1);box-shadow:4px 0 24px rgba(0,0,0,.15)}
+.slide-panel.left-sp{left:0;transform:translateX(-100%)}
+.slide-panel.right-sp{right:0;transform:translateX(100%)}
+.slide-panel.open{transform:translateX(0)}
+
+@media(max-width:900px){
+  .quick-panel{display:none}
+  .prod-panel{width:260px;min-width:220px}
+}
+@media(max-width:640px){
+  :root{--top-h:50px;--bot-h:58px}
+  .page-tabs{display:none}
+  .prod-panel{display:none}
+  .quick-panel{display:none}
+  .bill-center{flex:1}
+  .mob-nav{display:flex}
+  .slide-panel{display:flex}
+  .bill-hdr{padding:8px 10px;gap:5px}
+  .bmeta input{width:88px;font-size:12px}
+  .bill-items{padding:8px 10px}
+  .bill-foot{padding:8px 10px}
+  .bi-bottom{grid-template-columns:1fr 1fr}
+  .bi-amt{grid-column:1/-1;text-align:right}
+  .totals-grid{grid-template-columns:1fr}
+  .bill-acts .btn{font-size:11.5px;padding:9px 4px}
+  .rep-grid{grid-template-columns:1fr 1fr}
+  .two-col-rep{grid-template-columns:1fr}
+  .form-grid{grid-template-columns:1fr}
+  .overlay{padding:0;align-items:flex-end}
+  .modal{border-radius:var(--r) var(--r) 0 0;max-height:92vh;max-width:100%}
+  .prod-toolbar{padding:8px 12px}
+  .hist-toolbar{padding:8px 12px}
+  .reports-page{padding:12px}
+  .prod-list{padding:10px 12px}
+  .hist-list{padding:10px 12px}
+  .prod-card{flex-wrap:wrap;gap:8px}
+  .prod-card .pc-actions{width:100%;justify-content:flex-end}
+}
+@media(max-width:380px){
+  .rep-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .prod-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="top">
+  <div class="logo">
+    🛒 BillEase <span class="tag">Supermarket</span>
+  </div>
+  <div class="top-btns">
+    <div class="user-chip"><div class="uav" id="uav">U</div><span id="uname">Store</span></div>
+    <button class="tbtn" onclick="openAddProduct()">+ Product</button>
+    <button class="tbtn orange" onclick="saveBill()">💾 Bill</button>
+    <button class="tbtn red" onclick="goBack()">← Back</button>
+  </div>
+</div>
+
+<!-- PAGE TABS (desktop) -->
+<div class="page-tabs">
+  <button class="ptab on" id="ptab-billing" onclick="switchTab('billing')">🧾 Billing</button>
+  <button class="ptab" id="ptab-products" onclick="switchTab('products')">📦 Products</button>
+  <button class="ptab" id="ptab-history" onclick="switchTab('history')">📋 History</button>
+  <button class="ptab" id="ptab-reports" onclick="switchTab('reports')">📊 Reports</button>
+</div>
+
+<!-- APP SHELL -->
+<div class="app-shell">
+
+  <!-- ══ BILLING TAB ══ -->
+  <div class="tab-content active" id="tc-billing">
+    <div class="bill-layout">
+
+      <!-- LEFT: Products catalog -->
+      <div class="prod-panel">
+        <div class="prod-search">
+          <input id="pSearch" placeholder="🔍 Search products…" oninput="filterProducts()">
+        </div>
+        <div class="prod-cats" id="prodCats"></div>
+        <div class="prod-filter">
+          <button class="fchip on" id="fc-all" onclick="setTypeFilter('all')">All</button>
+          <button class="fchip loose" id="fc-loose" onclick="setTypeFilter('loose')">⚖️ Loose</button>
+          <button class="fchip packet" id="fc-packet" onclick="setTypeFilter('packet')">📦 Packet</button>
+        </div>
+        <div class="prod-grid" id="prodGrid"></div>
+      </div>
+
+      <!-- CENTER: Bill -->
+      <div class="bill-center">
+        <div class="bill-hdr">
+          <span class="bill-no-chip" id="billNoChip">Bill #001</span>
+          <div class="bmeta">👤<input id="bCustomer" placeholder="Customer name"></div>
+          <div class="bmeta">📱<input id="bPhone" placeholder="Phone" style="width:95px"></div>
+          <div style="font-size:11px;color:var(--text3);margin-left:auto" id="bClock"></div>
+        </div>
+        <div class="bill-items" id="billItems">
+          <div class="bill-empty"><div class="ei">🛒</div><p>Tap products to add to bill</p></div>
+        </div>
+        <div class="bill-foot">
+          <div class="totals-grid">
+            <div>
+              <div class="tot-row"><span>Subtotal</span><span id="fSub">₹0.00</span></div>
+              <div class="tot-row" id="fDiscRow" style="display:none"><span>Discount</span><span id="fDisc" style="color:var(--red)"></span></div>
+              <div class="tot-row" id="fTaxRow"><span>Tax (<span id="fTaxPct">0</span>%)</span><span id="fTax">₹0.00</span></div>
+              <div class="tot-row grand"><span>Grand Total</span><span id="fGrand">₹0.00</span></div>
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text3);margin-bottom:4px">Discount</div>
+              <div class="disc-row">
+                <input type="number" id="discAmt" placeholder="0" min="0" oninput="calcBill()">
+                <select id="discMode" onchange="calcBill()"><option value="flat">₹ Flat</option><option value="pct">% Pct</option></select>
+              </div>
+              <div style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text3);margin-bottom:4px">Payment</div>
+              <select id="payMode" style="width:100%;border:1.5px solid var(--bdr);border-radius:6px;padding:5px 7px;font-size:12.5px;outline:none;background:var(--bg)">
+                <option>Cash</option><option>Card</option><option>UPI</option><option>Online</option><option>Split</option>
+              </select>
+            </div>
+          </div>
+          <div class="bill-acts">
+            <button class="btn btn-r" onclick="clearBill()">🗑</button>
+            <button class="btn btn-o" onclick="showReceipt()">🖨 Print</button>
+            <button class="btn btn-g" onclick="saveBill()">✅ Save</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Quick panel -->
+      <div class="quick-panel">
+        <div class="qp-head">📊 Quick Stats</div>
+        <div class="qp-body">
+          <div class="qp-section">
+            <div class="qp-title">Today's Sales</div>
+            <div class="stat-box"><div class="stat-lbl">Revenue</div><div class="stat-val g" id="qTodayRev">₹0</div></div>
+            <div class="stat-box"><div class="stat-lbl">Bills</div><div class="stat-val" id="qTodayBills">0</div></div>
+          </div>
+          <div class="qp-section">
+            <div class="qp-title">⚠️ Low Stock</div>
+            <div id="qLowStock"><div style="font-size:12.5px;color:var(--text3)">Loading…</div></div>
+          </div>
+          <div class="qp-section">
+            <div class="qp-title">Current Bill</div>
+            <div class="stat-box"><div class="stat-lbl">Items</div><div class="stat-val" id="qBillItems">0</div></div>
+            <div class="stat-box"><div class="stat-lbl">Amount</div><div class="stat-val g" id="qBillAmt">₹0</div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ PRODUCTS TAB ══ -->
+  <div class="tab-content" id="tc-products">
+    <div class="products-page">
+      <div class="prod-toolbar">
+        <input id="pmSearch" placeholder="🔍 Search products…" oninput="renderProductsPage()">
+        <select id="pmCat" onchange="renderProductsPage()">
+          <option value="">All Categories</option>
+        </select>
+        <select id="pmType" onchange="renderProductsPage()">
+          <option value="">All Types</option>
+          <option value="loose">⚖️ Loose</option>
+          <option value="packet">📦 Packet</option>
+        </select>
+        <button class="btn btn-g" style="flex:0;padding:8px 16px;font-size:13px" onclick="openAddProduct()">+ Add Product</button>
+      </div>
+      <div class="prod-list" id="prodList"></div>
+    </div>
+  </div>
+
+  <!-- ══ HISTORY TAB ══ -->
+  <div class="tab-content" id="tc-history">
+    <div class="history-page">
+      <div class="hist-toolbar">
+        <input type="date" id="histFrom" onchange="loadHistory()">
+        <input type="date" id="histTo" onchange="loadHistory()">
+        <select id="histPay" onchange="loadHistory()">
+          <option value="">All Payments</option>
+          <option>Cash</option><option>Card</option><option>UPI</option><option>Online</option>
+        </select>
+      </div>
+      <div class="hist-list" id="histList"></div>
+    </div>
+  </div>
+
+  <!-- ══ REPORTS TAB ══ -->
+  <div class="tab-content" id="tc-reports">
+    <div class="reports-page">
+      <div class="rep-filter">
+        <select id="repType" onchange="toggleRepDates()">
+          <option value="daily">Daily</option>
+          <option value="monthly">Monthly</option>
+          <option value="custom">Custom Range</option>
+        </select>
+        <input type="date" id="repFrom">
+        <input type="date" id="repTo" style="display:none">
+        <button class="btn btn-g" style="flex:0;padding:7px 16px;font-size:13px" onclick="loadReports()">Go</button>
+      </div>
+      <div id="repOut"></div>
+    </div>
+  </div>
+
+  <!-- MOBILE BOTTOM NAV -->
+  <div class="mob-nav">
+    <div class="mob-nav-inner">
+      <button class="mnb on" id="mnb-billing" onclick="mobSwitch('billing')"><span class="icon">🧾</span>Bill</button>
+      <button class="mnb" id="mnb-catalog" onclick="mobSwitch('catalog')"><span class="icon">🛒</span>Items</button>
+      <button class="mnb" id="mnb-products" onclick="mobSwitch('products')"><span class="icon">📦</span>Products</button>
+      <button class="mnb" id="mnb-history" onclick="mobSwitch('history')"><span class="icon">📋</span>History</button>
+      <button class="mnb" id="mnb-reports" onclick="mobSwitch('reports')"><span class="icon">📊</span>Reports</button>
+    </div>
+  </div>
+
+  <!-- Mobile overlay -->
+  <div class="mob-overlay" id="mobOverlay" onclick="closeMobSlides()"></div>
+  <!-- Mobile catalog slide -->
+  <div class="slide-panel left-sp" id="catalogSlide">
+    <div class="prod-search"><input id="pSearchMob" placeholder="🔍 Search…" oninput="filterProductsMob()"></div>
+    <div class="prod-cats" id="prodCatsMob"></div>
+    <div class="prod-filter">
+      <button class="fchip on" id="fc-all-mob" onclick="setTypeFilterMob('all')">All</button>
+      <button class="fchip loose" id="fc-loose-mob" onclick="setTypeFilterMob('loose')">⚖️ Loose</button>
+      <button class="fchip packet" id="fc-packet-mob" onclick="setTypeFilterMob('packet')">📦 Packet</button>
+    </div>
+    <div class="prod-grid" id="prodGridMob"></div>
+  </div>
+
+</div>
+
+<!-- QTY MODAL (for adding items to bill) -->
+<div class="overlay" id="qtyModal">
+  <div class="modal">
+    <h2 id="qtyModalTitle">Add to Bill</h2>
+    <div class="qty-modal-product">
+      <div style="font-size:34px" id="qtyModalEmoji">🛒</div>
+      <div class="qty-modal-info">
+        <h3 id="qtyModalName">Product</h3>
+        <p id="qtyModalMeta">₹0 per kg</p>
+      </div>
+    </div>
+    <!-- Quantity input -->
+    <div style="font-size:12px;font-weight:600;text-transform:uppercase;color:var(--text3);margin-bottom:8px">Enter Quantity</div>
+    <div class="qty-input-wrap">
+      <input type="number" class="qty-input-big" id="qtyInput" placeholder="0" min="0.001" step="0.001" oninput="updateQtyCalc()">
+      <select class="unit-select" id="qtyUnit" onchange="updateQtyCalc()"></select>
+    </div>
+    <!-- Preset quick amounts -->
+    <div class="preset-btns" id="presetBtns"></div>
+    <!-- Calculated price -->
+    <div class="calc-price" id="calcPrice">₹0.00</div>
+    <div class="modal-acts">
+      <button class="btn btn-o" onclick="closeM('qtyModal')">Cancel</button>
+      <button class="btn btn-g" onclick="confirmAddToCart()">Add to Bill →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD/EDIT PRODUCT MODAL -->
+<div class="overlay" id="productModal">
+  <div class="modal modal-lg">
+    <h2 id="prodModalTitle">Add New Product</h2>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Emoji</label>
+        <input id="pm-emoji" placeholder="🛒" maxlength="4">
+      </div>
+      <div class="form-group">
+        <label>Item Type *</label>
+        <select id="pm-type" onchange="onTypeChange()">
+          <option value="loose">⚖️ Loose (by weight/volume)</option>
+          <option value="packet">📦 Packet / Piece</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>Product Name *</label>
+        <input id="pm-name" placeholder="e.g. Toor Dal, Basmati Rice, Amul Butter">
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <input id="pm-cat" placeholder="Pulses, Grains, Dairy…" list="cat-list">
+        <datalist id="cat-list">
+          <option>Pulses & Dal</option><option>Rice & Grains</option><option>Spices</option>
+          <option>Flour & Atta</option><option>Oils & Ghee</option><option>Dairy</option>
+          <option>Vegetables</option><option>Fruits</option><option>Snacks</option>
+          <option>Beverages</option><option>Cleaning</option><option>Personal Care</option>
+        </datalist>
+      </div>
+      <div class="form-group">
+        <label>Brand</label>
+        <input id="pm-brand" placeholder="Aashirvaad, Amul…">
+      </div>
+      <div class="form-group">
+        <label>Price per Unit *</label>
+        <input type="number" id="pm-price" placeholder="0.00" min="0" step="0.01">
+      </div>
+      <div class="form-group">
+        <label>Unit *</label>
+        <select id="pm-unit">
+          <optgroup label="Weight">
+            <option value="kg">kg (kilogram)</option>
+            <option value="g">g (gram)</option>
+          </optgroup>
+          <optgroup label="Volume">
+            <option value="l">l (litre)</option>
+            <option value="ml">ml (millilitre)</option>
+          </optgroup>
+          <optgroup label="Count">
+            <option value="pcs">pcs (piece)</option>
+            <option value="pack">pack</option>
+            <option value="box">box</option>
+            <option value="dozen">dozen</option>
+            <option value="bundle">bundle</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Stock Qty</label>
+        <input type="number" id="pm-stock" placeholder="0" min="0" step="0.001">
+      </div>
+      <div class="form-group">
+        <label>Low Stock Alert at</label>
+        <input type="number" id="pm-alert" placeholder="5" min="0">
+      </div>
+      <div class="form-group">
+        <label>Barcode (optional)</label>
+        <input id="pm-barcode" placeholder="8901234567890">
+      </div>
+      <div class="form-group">
+        <label>HSN Code (GST)</label>
+        <input id="pm-hsn" placeholder="1001, 0713…">
+      </div>
+      <div class="form-group">
+        <label>Item Tax Rate % (0 = store default)</label>
+        <input type="number" id="pm-tax" placeholder="0" min="0" max="100">
+      </div>
+    </div>
+    <div class="modal-acts">
+      <button class="btn btn-o" onclick="closeM('productModal')">Cancel</button>
+      <button class="btn btn-g" onclick="saveProduct()" id="prodSaveBtn">Save Product</button>
+    </div>
+  </div>
+</div>
+
+<!-- STOCK UPDATE MODAL -->
+<div class="overlay" id="stockModal">
+  <div class="modal">
+    <h2>📦 Update Stock</h2>
+    <div class="qty-modal-product" id="stockModalInfo"></div>
+    <div class="form-group" style="margin-bottom:14px">
+      <label>New Stock Quantity</label>
+      <input type="number" id="stockNewQty" placeholder="0" min="0" step="0.001" style="border:1.5px solid var(--bdr);border-radius:6px;padding:10px 12px;font-size:16px;width:100%;outline:none;background:var(--bg)">
+    </div>
+    <div class="modal-acts">
+      <button class="btn btn-o" onclick="closeM('stockModal')">Cancel</button>
+      <button class="btn btn-g" onclick="confirmStockUpdate()">Update Stock</button>
+    </div>
+  </div>
+</div>
+
+<!-- RECEIPT MODAL -->
+<div class="overlay" id="receiptModal">
+  <div class="modal">
+    <h2>🧾 Bill Receipt</h2>
+    <div class="receipt-txt" id="receiptTxt"></div>
+    <div class="modal-acts">
+      <button class="btn btn-o" onclick="closeM('receiptModal')">Close</button>
+      <button class="btn btn-g" onclick="window.print()">🖨 Print</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+const API = window.location.origin + '/api';
+let TOKEN = localStorage.getItem('be_token') || '';
+let ME = JSON.parse(localStorage.getItem('be_me') || 'null');
+let S = {};  // store settings
+let products = [];
+let cart = [];
+let activeTab = 'billing';
+let activeCat = 'All';
+let activeType = 'all';
+let activeCatMob = 'All';
+let activeTypeMob = 'all';
+let editingProductId = null;
+let qtyModalProduct = null;
+let stockUpdateId = null;
+let unitConversions = { kg:1, g:0.001, l:1, ml:0.001, pcs:1, pack:1, box:1, dozen:12, bundle:1 };
+
+// ── API helper ────────────────────────────────────────────────────────────────
+async function api(method, path, body) {
+  const r = await fetch(API + path, {
+    method,
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (r.status === 401) { window.location = '/'; return null; }
+  return r.json();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function init() {
+  if (!TOKEN || !ME) { window.location = '/'; return; }
+  S = await api('GET', '/settings');
+  normalizeS();
+  document.getElementById('uname').textContent = ME.name || 'Store';
+  document.getElementById('uav').textContent = (ME.name || 'S')[0].toUpperCase();
+  await loadProducts();
+  updateBillNo();
+  startClock();
+  loadQuickStats();
+  // Set default dates
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('histFrom').value = today;
+  document.getElementById('histTo').value = today;
+  document.getElementById('repFrom').value = today;
+  document.getElementById('repTo').value = today;
+}
+
+function normalizeS() {
+  if (!S.bizName && S.biz_name) S.bizName = S.biz_name;
+  if (!S.bizPhone && S.biz_phone) S.bizPhone = S.biz_phone;
+  if (S.tax_enabled !== undefined && S.taxEnabled === undefined) S.taxEnabled = S.tax_enabled;
+  if (S.tax_rate !== undefined && S.taxRate === undefined) S.taxRate = S.tax_rate;
+  if (!S.taxName && S.tax_name) S.taxName = S.tax_name;
+  if (!S.thankYou && S.thank_you) S.thankYou = S.thank_you;
+  if (!S.billPrefix && S.bill_prefix) S.billPrefix = S.bill_prefix;
+}
+
+function startClock() {
+  const tick = () => {
+    const n = new Date();
+    const el = document.getElementById('bClock');
+    if (el) el.textContent = n.toLocaleDateString('en-IN',{day:'2-digit',month:'short'}) + ' ' + n.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  };
+  tick(); setInterval(tick, 30000);
+}
+
+async function loadProducts() {
+  products = await api('GET', '/sm/products');
+  renderCatalog();
+  renderCatalogMob();
+  renderProductsPage();
+  updateCatFilter();
+}
+
+function goBack() {
+  window.location.href = '/';
+}
+
+// ── TAB SWITCHING ─────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  activeTab = tab;
+  ['billing','products','history','reports'].forEach(t => {
+    document.getElementById('tc-'+t)?.classList.toggle('active', t === tab);
+    document.getElementById('ptab-'+t)?.classList.toggle('on', t === tab);
+  });
+  if (tab === 'history') loadHistory();
+  if (tab === 'reports') loadReports();
+  if (tab === 'products') renderProductsPage();
+}
+
+// ── MOBILE NAV ────────────────────────────────────────────────────────────────
+function mobSwitch(tab) {
+  ['billing','catalog','products','history','reports'].forEach(t => {
+    document.getElementById('mnb-'+t)?.classList.toggle('on', t === tab);
+  });
+  closeMobSlides();
+  if (tab === 'catalog') { openCatalogSlide(); return; }
+  if (tab === 'billing') return;
+  // show in desktop tab content
+  if (tab === 'products') switchTab('products');
+  if (tab === 'history') switchTab('history');
+  if (tab === 'reports') switchTab('reports');
+}
+
+function openCatalogSlide() {
+  document.getElementById('catalogSlide').classList.add('open');
+  document.getElementById('mobOverlay').classList.add('open');
+  renderCatalogMob();
+}
+
+function closeMobSlides() {
+  document.getElementById('catalogSlide')?.classList.remove('open');
+  document.getElementById('mobOverlay')?.classList.remove('open');
+}
+
+// ── CATALOG ───────────────────────────────────────────────────────────────────
+function updateCatFilter() {
+  const cats = ['All', ...new Set(products.map(p => p.category))].sort();
+  const makeHTML = (prefix, active) => cats.map(c =>
+    `<button class="pcat ${c===active?'on':''}" onclick="${prefix}setCatFilter('${c}')">${c}</button>`
+  ).join('');
+  const cb = document.getElementById('prodCats');
+  const cbm = document.getElementById('prodCatsMob');
+  if (cb) cb.innerHTML = makeHTML('', activeCat);
+  if (cbm) cbm.innerHTML = makeHTML('Mob', activeCatMob);
+
+  // Also update manage page category filter
+  const pmCat = document.getElementById('pmCat');
+  if (pmCat) {
+    const existing = pmCat.value;
+    pmCat.innerHTML = '<option value="">All Categories</option>' + cats.filter(c=>c!=='All').map(c=>`<option ${c===existing?'selected':''}>${c}</option>`).join('');
+  }
+}
+
+function setCatFilter(c) { activeCat = c; updateCatFilter(); renderCatalog(); }
+function setCatFilterMob(c) { activeCatMob = c; updateCatFilter(); renderCatalogMob(); }
+
+function setTypeFilter(t) {
+  activeType = t;
+  ['all','loose','packet'].forEach(x => document.getElementById('fc-'+x)?.classList.toggle('on', x===t));
+  renderCatalog();
+}
+function setTypeFilterMob(t) {
+  activeTypeMob = t;
+  ['all','loose','packet'].forEach(x => document.getElementById('fc-'+x+'-mob')?.classList.toggle('on', x===t));
+  renderCatalogMob();
+}
+
+function filterProducts() { renderCatalog(); }
+function filterProductsMob() { renderCatalogMob(); }
+
+function getFilteredProducts(searchId, cat, type) {
+  const q = (document.getElementById(searchId)?.value || '').toLowerCase();
+  return products.filter(p =>
+    p.active &&
+    (cat === 'All' || p.category === cat) &&
+    (type === 'all' || p.item_type === type) &&
+    (!q || p.name.toLowerCase().includes(q) || (p.brand||'').toLowerCase().includes(q) || p.category.toLowerCase().includes(q))
+  );
+}
+
+function productCardHTML(p, onclick) {
+  const inCart = cart.find(c => c.product_id === p.id);
+  const isLow = parseFloat(p.stock_qty) <= parseFloat(p.low_stock_alert);
+  const priceLabel = p.item_type === 'loose'
+    ? `₹${p.price_per_unit}/${p.unit}`
+    : `₹${p.price_per_unit}/${p.unit}`;
+  const stockLabel = `Stock: ${p.stock_qty} ${p.unit}`;
+  return `<div class="pc ${isLow?'low-stock':''}" onclick="${onclick}">
+    ${inCart ? `<div class="ic-badge">${inCart.qty}${p.unit}</div>` : ''}
+    <div class="ptype ${p.item_type}">${p.item_type==='loose'?'⚖️ Loose':'📦 Packet'}</div>
+    <div class="pem">${p.emoji}</div>
+    <div class="pname">${p.name}</div>
+    ${p.brand?`<div class="pbrand">${p.brand}</div>`:''}
+    <div class="pprice">${priceLabel}</div>
+    <div class="pstock ${isLow?'low':''}">${stockLabel}${isLow?' ⚠️':''}</div>
+  </div>`;
+}
+
+function renderCatalog() {
+  const list = getFilteredProducts('pSearch', activeCat, activeType);
+  const g = document.getElementById('prodGrid'); if (!g) return;
+  if (!list.length) { g.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text3);font-size:13px">No products found</div>`; return; }
+  g.innerHTML = list.map(p => productCardHTML(p, `openQtyModal(${p.id})`)).join('');
+}
+
+function renderCatalogMob() {
+  const list = getFilteredProducts('pSearchMob', activeCatMob, activeTypeMob);
+  const g = document.getElementById('prodGridMob'); if (!g) return;
+  if (!list.length) { g.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text3);font-size:13px">No products found</div>`; return; }
+  g.innerHTML = list.map(p => productCardHTML(p, `openQtyModal(${p.id});closeMobSlides()`)).join('');
+}
+
+// ── QTY MODAL ─────────────────────────────────────────────────────────────────
+function openQtyModal(productId) {
+  const p = products.find(x => x.id === productId);
+  if (!p) return;
+  qtyModalProduct = p;
+
+  document.getElementById('qtyModalTitle').textContent = `Add ${p.name} to Bill`;
+  document.getElementById('qtyModalEmoji').textContent = p.emoji;
+  document.getElementById('qtyModalName').textContent = p.name + (p.brand ? ` — ${p.brand}` : '');
+  document.getElementById('qtyModalMeta').textContent = `₹${p.price_per_unit} per ${p.unit} · Stock: ${p.stock_qty} ${p.unit}`;
+
+  // Unit selector
+  const unitSel = document.getElementById('qtyUnit');
+  if (p.item_type === 'loose') {
+    if (p.unit === 'kg') {
+      unitSel.innerHTML = '<option value="kg">kg</option><option value="g">g</option>';
+    } else if (p.unit === 'g') {
+      unitSel.innerHTML = '<option value="g">g</option>';
+    } else if (p.unit === 'l') {
+      unitSel.innerHTML = '<option value="l">l</option><option value="ml">ml</option>';
+    } else if (p.unit === 'ml') {
+      unitSel.innerHTML = '<option value="ml">ml</option>';
+    } else {
+      unitSel.innerHTML = `<option value="${p.unit}">${p.unit}</option>`;
+    }
+  } else {
+    unitSel.innerHTML = `<option value="${p.unit}">${p.unit}</option>`;
+  }
+
+  // Preset buttons
+  const presets = document.getElementById('presetBtns');
+  if (p.item_type === 'loose') {
+    if (p.unit === 'kg' || p.unit === 'g') {
+      presets.innerHTML = ['100g','250g','500g','1kg','2kg','5kg'].map(v =>
+        `<button class="preset-btn" onclick="setPreset('${v}')">${v}</button>`
+      ).join('');
+    } else if (p.unit === 'l' || p.unit === 'ml') {
+      presets.innerHTML = ['100ml','250ml','500ml','1l','2l','5l'].map(v =>
+        `<button class="preset-btn" onclick="setPreset('${v}')">${v}</button>`
+      ).join('');
+    } else {
+      presets.innerHTML = '';
+    }
+  } else {
+    presets.innerHTML = [1,2,3,5,10].map(v =>
+      `<button class="preset-btn" onclick="document.getElementById('qtyInput').value=${v};updateQtyCalc()">${v} ${p.unit}</button>`
+    ).join('');
+  }
+
+  const existing = cart.find(c => c.product_id === p.id);
+  document.getElementById('qtyInput').value = existing ? existing.qty : '';
+  updateQtyCalc();
+  document.getElementById('qtyModal').classList.add('open');
+  setTimeout(() => document.getElementById('qtyInput').focus(), 300);
+}
+
+function setPreset(val) {
+  // val like '250g' or '1kg' or '500ml'
+  const num = parseFloat(val);
+  const unit = val.replace(/[\d.]/g,'');
+  document.getElementById('qtyUnit').value = unit;
+  document.getElementById('qtyInput').value = num;
+  updateQtyCalc();
+}
+
+function updateQtyCalc() {
+  if (!qtyModalProduct) return;
+  const qty = parseFloat(document.getElementById('qtyInput').value) || 0;
+  const unit = document.getElementById('qtyUnit').value;
+  const baseUnit = qtyModalProduct.unit;
+  const price = parseFloat(qtyModalProduct.price_per_unit);
+
+  // Convert to base unit for price calculation
+  let qtyInBase = qty;
+  if (unit === 'g' && baseUnit === 'kg') qtyInBase = qty / 1000;
+  else if (unit === 'ml' && baseUnit === 'l') qtyInBase = qty / 1000;
+  else if (unit === 'kg' && baseUnit === 'g') qtyInBase = qty * 1000;
+
+  const amount = qtyInBase * price;
+  document.getElementById('calcPrice').textContent = qty > 0
+    ? `${qty} ${unit} × ₹${price}/${baseUnit} = ₹${amount.toFixed(2)}`
+    : '₹0.00';
+}
+
+function confirmAddToCart() {
+  const p = qtyModalProduct;
+  if (!p) return;
+  const qty = parseFloat(document.getElementById('qtyInput').value);
+  if (!qty || qty <= 0) { alert('Please enter a valid quantity'); return; }
+  const unit = document.getElementById('qtyUnit').value;
+  const baseUnit = p.unit;
+
+  // Convert to base unit
+  let qtyInBase = qty;
+  if (unit === 'g' && baseUnit === 'kg') qtyInBase = qty / 1000;
+  else if (unit === 'ml' && baseUnit === 'l') qtyInBase = qty / 1000;
+  else if (unit === 'kg' && baseUnit === 'g') qtyInBase = qty * 1000;
+
+  const amount = qtyInBase * parseFloat(p.price_per_unit);
+
+  // Remove existing entry for same product
+  cart = cart.filter(c => c.product_id !== p.id);
+
+  cart.push({
+    product_id: p.id,
+    name: p.name,
+    brand: p.brand || '',
+    category: p.category,
+    emoji: p.emoji,
+    item_type: p.item_type,
+    qty: parseFloat(qtyInBase.toFixed(4)),
+    display_qty: qty,
+    display_unit: unit,
+    unit: baseUnit,
+    price_per_unit: parseFloat(p.price_per_unit),
+    amount: parseFloat(amount.toFixed(2)),
+    tax_rate: parseFloat(p.tax_rate) || 0,
+  });
+
+  closeM('qtyModal');
+  renderBill();
+  renderCatalog();
+  renderCatalogMob();
+  calcBill();
+  updateQuickPanel();
+  toast(`✅ ${p.name} (${qty} ${unit}) added`);
+}
+
+// ── BILL RENDER ───────────────────────────────────────────────────────────────
+function renderBill() {
+  const container = document.getElementById('billItems');
+  if (!cart.length) {
+    container.innerHTML = '<div class="bill-empty"><div class="ei">🛒</div><p>Tap products to add to bill</p></div>';
+    return;
+  }
+  container.innerHTML = cart.map((item, i) => `
+    <div class="bill-item">
+      <div class="bi-top">
+        <div class="bi-emoji">${item.emoji}</div>
+        <div class="bi-name">
+          ${item.name}
+          ${item.brand ? `<span style="font-size:11px;color:var(--text3);font-weight:400"> — ${item.brand}</span>` : ''}
+        </div>
+        <span class="bi-type ${item.item_type}">${item.item_type === 'loose' ? '⚖️' : '📦'}</span>
+        <button class="bi-del" onclick="removeFromCart(${i})">✕</button>
+      </div>
+      <div class="bi-bottom">
+        <div class="qty-block">
+          <div class="qty-label">Quantity</div>
+          ${item.item_type === 'loose' ? `
+            <div class="loose-qty">
+              <input type="number" value="${item.display_qty}" min="0.001" step="any"
+                onchange="updateLooseQty(${i}, this.value, '${item.display_unit}')"
+                style="width:70px;border:1.5px solid var(--bdr);border-radius:6px;padding:5px 7px;font-size:13px;outline:none;background:var(--bg);text-align:center">
+              <span class="unit-lbl">${item.display_unit}</span>
+            </div>` : `
+            <div class="pkt-qty">
+              <button class="qb" onclick="changePktQty(${i}, -1)">−</button>
+              <span class="qv">${item.qty}</span>
+              <button class="qb" onclick="changePktQty(${i}, 1)">+</button>
+            </div>`}
+        </div>
+        <div class="qty-block">
+          <div class="qty-label">Rate</div>
+          <div class="bi-rate">₹${item.price_per_unit}/${item.unit}</div>
+        </div>
+        <div class="bi-amt">₹${item.amount.toFixed(2)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateLooseQty(i, newDisplayQty, displayUnit) {
+  const item = cart[i]; if (!item) return;
+  const qty = parseFloat(newDisplayQty) || 0;
+  let qtyInBase = qty;
+  if (displayUnit === 'g' && item.unit === 'kg') qtyInBase = qty / 1000;
+  else if (displayUnit === 'ml' && item.unit === 'l') qtyInBase = qty / 1000;
+  item.qty = parseFloat(qtyInBase.toFixed(4));
+  item.display_qty = qty;
+  item.amount = parseFloat((qtyInBase * item.price_per_unit).toFixed(2));
+  renderBill(); calcBill(); renderCatalog(); renderCatalogMob(); updateQuickPanel();
+}
+
+function changePktQty(i, delta) {
+  const item = cart[i]; if (!item) return;
+  item.qty = Math.max(1, item.qty + delta);
+  item.display_qty = item.qty;
+  item.amount = parseFloat((item.qty * item.price_per_unit).toFixed(2));
+  renderBill(); calcBill(); renderCatalog(); renderCatalogMob(); updateQuickPanel();
+}
+
+function removeFromCart(i) {
+  cart.splice(i, 1);
+  renderBill(); calcBill(); renderCatalog(); renderCatalogMob(); updateQuickPanel();
+}
+
+function calcBill() {
+  const sub = cart.reduce((s, c) => s + c.amount, 0);
+  const dv = parseFloat(document.getElementById('discAmt')?.value) || 0;
+  const dt = document.getElementById('discMode')?.value || 'flat';
+  let disc = dt === 'pct' ? sub * (dv/100) : dv;
+  disc = Math.min(disc, sub);
+  const taxable = sub - disc;
+  let tax = 0;
+  if (S.taxEnabled) {
+    cart.forEach(item => {
+      const ratio = sub > 0 ? item.amount / sub : 0;
+      const taxableItem = taxable * ratio;
+      const rate = item.tax_rate > 0 ? item.tax_rate : (S.taxRate || 0);
+      tax += taxableItem * (rate / 100);
+    });
+  }
+  const grand = taxable + tax;
+  const cur = S.currency || '₹';
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('fSub', cur + sub.toFixed(2));
+  set('fDisc', '-' + cur + disc.toFixed(2));
+  const dr = document.getElementById('fDiscRow'); if (dr) dr.style.display = disc > 0 ? '' : 'none';
+  set('fTaxPct', S.taxEnabled ? (S.taxRate || 0) : 0);
+  set('fTax', cur + tax.toFixed(2));
+  const tr = document.getElementById('fTaxRow'); if (tr) tr.style.display = S.taxEnabled ? '' : 'none';
+  set('fGrand', cur + grand.toFixed(2));
+  return { sub, disc, tax, grand };
+}
+
+function clearBill() {
+  if (!cart.length) return;
+  if (!confirm('Clear all items from bill?')) return;
+  cart = [];
+  document.getElementById('bCustomer').value = '';
+  document.getElementById('bPhone').value = '';
+  document.getElementById('discAmt').value = '';
+  renderBill(); calcBill(); renderCatalog(); renderCatalogMob(); updateQuickPanel();
+}
+
+// ── SAVE BILL ─────────────────────────────────────────────────────────────────
+async function saveBill() {
+  if (!cart.length) { alert('Add items to bill first'); return; }
+  const { sub, disc, tax, grand } = calcBill();
+  const dv = parseFloat(document.getElementById('discAmt').value) || 0;
+  const dt = document.getElementById('discMode').value;
+  const res = await api('POST', '/sm/bills', {
+    cart, customer: document.getElementById('bCustomer').value || 'Walk-in',
+    phone: document.getElementById('bPhone').value,
+    payMode: document.getElementById('payMode').value,
+    discount: disc, discountType: dt, discountVal: dv,
+    subtotal: sub, tax, grandTotal: grand,
+  });
+  if (res?.success) {
+    toast(`✅ Bill #${String(res.bill.no).padStart(3,'0')} saved!`);
+    await loadProducts(); // refresh stock
+    cart = [];
+    document.getElementById('bCustomer').value = '';
+    document.getElementById('bPhone').value = '';
+    document.getElementById('discAmt').value = '';
+    renderBill(); calcBill(); renderCatalog(); renderCatalogMob();
+    updateBillNo(); loadQuickStats(); updateQuickPanel();
+  }
+}
+
+async function updateBillNo() {
+  const bills = await api('GET', '/sm/bills');
+  const el = document.getElementById('billNoChip');
+  if (el) el.textContent = 'Bill #' + String((bills?.length || 0) + 1).padStart(3,'0');
+}
+
+// ── RECEIPT ───────────────────────────────────────────────────────────────────
+function showReceipt(billData) {
+  const { sub, disc, tax, grand } = billData ? { sub: billData.subtotal, disc: billData.discount, tax: billData.tax, grand: billData.grand_total } : calcBill();
+  const b = billData || {
+    cart, customer: document.getElementById('bCustomer').value || 'Walk-in',
+    phone: document.getElementById('bPhone').value,
+    pay_mode: document.getElementById('payMode').value,
+    no: '---', time: new Date().toISOString(), subtotal: sub, discount: disc, tax, grand_total: grand,
+  };
+  if (!billData && !cart.length) { alert('No items in bill'); return; }
+  const cur = S.currency || '₹';
+  const ln = '─'.repeat(40);
+  const no = b.no ? String(b.no).padStart(3,'0') : '---';
+  const now = new Date(b.time || Date.now());
+  let r = `${C(S.bizName || 'My Store', 40)}\n${C(S.bizPhone || '', 40)}\n${ln}`;
+  r += `\nBill No  : ${S.billPrefix || 'SM'}-${no}`;
+  r += `\nDate     : ${now.toLocaleDateString('en-IN')} ${now.toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'})}`;
+  r += `\nCustomer : ${b.customer}`;
+  r += `\nPayment  : ${b.pay_mode || b.payMode}\n${ln}`;
+  r += `\n${'ITEM'.padEnd(20)}${'QTY'.padStart(8)}${'RATE'.padStart(7)}${'AMT'.padStart(8)}\n${ln}`;
+  const cartItems = Array.isArray(b.cart) ? b.cart : JSON.parse(b.cart || '[]');
+  cartItems.forEach(item => {
+    const nm = item.name.length > 19 ? item.name.slice(0,18) + '.' : item.name;
+    const qtyStr = `${item.display_qty || item.qty}${item.display_unit || item.unit}`;
+    r += `\n${nm.padEnd(20)}${qtyStr.padStart(8)}${(cur + item.price_per_unit).padStart(7)}${(cur + parseFloat(item.amount).toFixed(2)).padStart(8)}`;
+  });
+  r += `\n${ln}`;
+  r += `\n${'Subtotal'.padEnd(30)}${(cur + parseFloat(sub).toFixed(2)).padStart(10)}`;
+  if (parseFloat(disc) > 0) r += `\n${'Discount'.padEnd(30)}${('-' + cur + parseFloat(disc).toFixed(2)).padStart(10)}`;
+  if (S.taxEnabled) r += `\n${(S.taxName || 'Tax').padEnd(30)}${(cur + parseFloat(tax).toFixed(2)).padStart(10)}`;
+  r += `\n${ln}\n${'TOTAL'.padEnd(30)}${(cur + parseFloat(grand).toFixed(2)).padStart(10)}\n${ln}`;
+  r += `\n${C(S.thankYou || 'Thank you!', 40)}\n${C('*** Have a great day! ***', 40)}`;
+  document.getElementById('receiptTxt').textContent = r.trim();
+  document.getElementById('receiptModal').classList.add('open');
+}
+function C(s, w) { if (!s) return ''; const p = Math.max(0, Math.floor((w - s.length) / 2)); return ' '.repeat(p) + s; }
+
+// ── PRODUCTS PAGE ─────────────────────────────────────────────────────────────
+function renderProductsPage() {
+  const q = (document.getElementById('pmSearch')?.value || '').toLowerCase();
+  const cat = document.getElementById('pmCat')?.value || '';
+  const type = document.getElementById('pmType')?.value || '';
+  const list = products.filter(p =>
+    p.active &&
+    (!cat || p.category === cat) &&
+    (!type || p.item_type === type) &&
+    (!q || p.name.toLowerCase().includes(q) || (p.brand||'').toLowerCase().includes(q))
+  );
+  const container = document.getElementById('prodList'); if (!container) return;
+  if (!list.length) {
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">No products found. <a href="#" onclick="openAddProduct()">Add one?</a></div>';
+    return;
+  }
+  container.innerHTML = list.map(p => {
+    const isLow = parseFloat(p.stock_qty) <= parseFloat(p.low_stock_alert);
+    return `<div class="prod-card ${isLow?'low-stock-card':''}">
+      <div class="pc-emoji">${p.emoji}</div>
+      <div class="pc-info">
+        <div class="pc-name">
+          ${p.name}
+          <span class="type-pill ${p.item_type}">${p.item_type === 'loose' ? '⚖️ Loose' : '📦 Packet'}</span>
+          ${isLow ? '<span style="color:var(--orange);font-size:12px">⚠️ Low</span>' : ''}
+        </div>
+        <div class="pc-meta">${p.category}${p.brand?' · '+p.brand:''} · HSN: ${p.hsn_code||'—'}</div>
+        <div class="pc-stats">
+          <span class="pc-price">₹${p.price_per_unit}/${p.unit}</span>
+          <span class="pc-stock ${isLow?'low':''}">Stock: ${p.stock_qty} ${p.unit}</span>
+          ${p.barcode?`<span style="color:var(--text3)">🔖 ${p.barcode}</span>`:''}
+        </div>
+      </div>
+      <div class="pc-actions">
+        <button class="act-btn stock" onclick="openStockModal(${p.id})">📦 Stock</button>
+        <button class="act-btn edit" onclick="openEditProduct(${p.id})">✏️ Edit</button>
+        <button class="act-btn del" onclick="deleteProduct(${p.id})">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── ADD/EDIT PRODUCT ──────────────────────────────────────────────────────────
+function openAddProduct() {
+  editingProductId = null;
+  document.getElementById('prodModalTitle').textContent = 'Add New Product';
+  document.getElementById('prodSaveBtn').textContent = 'Save Product';
+  ['pm-emoji','pm-name','pm-cat','pm-brand','pm-price','pm-stock','pm-barcode','pm-hsn'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('pm-type').value = 'packet';
+  document.getElementById('pm-unit').value = 'pcs';
+  document.getElementById('pm-alert').value = '5';
+  document.getElementById('pm-tax').value = '0';
+  onTypeChange();
+  document.getElementById('productModal').classList.add('open');
+  switchTab('billing'); // go back to billing tab but modal shows
+}
+
+function openEditProduct(id) {
+  const p = products.find(x => x.id === id); if (!p) return;
+  editingProductId = id;
+  document.getElementById('prodModalTitle').textContent = 'Edit Product';
+  document.getElementById('prodSaveBtn').textContent = 'Update Product';
+  document.getElementById('pm-emoji').value = p.emoji || '';
+  document.getElementById('pm-name').value = p.name;
+  document.getElementById('pm-type').value = p.item_type;
+  document.getElementById('pm-cat').value = p.category;
+  document.getElementById('pm-brand').value = p.brand || '';
+  document.getElementById('pm-price').value = p.price_per_unit;
+  document.getElementById('pm-unit').value = p.unit;
+  document.getElementById('pm-stock').value = p.stock_qty;
+  document.getElementById('pm-alert').value = p.low_stock_alert;
+  document.getElementById('pm-barcode').value = p.barcode || '';
+  document.getElementById('pm-hsn').value = p.hsn_code || '';
+  document.getElementById('pm-tax').value = p.tax_rate || 0;
+  onTypeChange();
+  document.getElementById('productModal').classList.add('open');
+}
+
+function onTypeChange() {
+  const type = document.getElementById('pm-type').value;
+  const unitSel = document.getElementById('pm-unit');
+  if (type === 'loose') {
+    unitSel.innerHTML = `
+      <optgroup label="Weight"><option value="kg">kg</option><option value="g">g</option></optgroup>
+      <optgroup label="Volume"><option value="l">litre</option><option value="ml">ml</option></optgroup>`;
+  } else {
+    unitSel.innerHTML = `
+      <optgroup label="Count">
+        <option value="pcs">pcs (piece)</option><option value="pack">pack</option>
+        <option value="box">box</option><option value="dozen">dozen</option><option value="bundle">bundle</option>
+      </optgroup>`;
+  }
+}
+
+async function saveProduct() {
+  const name = document.getElementById('pm-name').value.trim();
+  const price = parseFloat(document.getElementById('pm-price').value);
+  if (!name || !price) { alert('Product name and price are required'); return; }
+  const payload = {
+    name, emoji: document.getElementById('pm-emoji').value || '🛒',
+    item_type: document.getElementById('pm-type').value,
+    category: document.getElementById('pm-cat').value || 'General',
+    brand: document.getElementById('pm-brand').value,
+    price_per_unit: price,
+    unit: document.getElementById('pm-unit').value,
+    stock_qty: parseFloat(document.getElementById('pm-stock').value) || 0,
+    low_stock_alert: parseFloat(document.getElementById('pm-alert').value) || 5,
+    barcode: document.getElementById('pm-barcode').value || null,
+    hsn_code: document.getElementById('pm-hsn').value || null,
+    tax_rate: parseFloat(document.getElementById('pm-tax').value) || 0,
+  };
+  const res = editingProductId
+    ? await api('PUT', '/sm/products/' + editingProductId, payload)
+    : await api('POST', '/sm/products', payload);
+  if (res?.success) {
+    closeM('productModal');
+    await loadProducts();
+    toast(editingProductId ? '✅ Product updated' : '✅ Product added');
+    editingProductId = null;
+  }
+}
+
+async function deleteProduct(id) {
+  if (!confirm('Delete this product?')) return;
+  await api('DELETE', '/sm/products/' + id);
+  await loadProducts();
+  toast('🗑 Product deleted');
+}
+
+// ── STOCK UPDATE ──────────────────────────────────────────────────────────────
+function openStockModal(id) {
+  const p = products.find(x => x.id === id); if (!p) return;
+  stockUpdateId = id;
+  document.getElementById('stockModalInfo').innerHTML = `
+    <div style="font-size:32px">${p.emoji}</div>
+    <div><h3 style="font-size:15px;font-weight:600;margin-bottom:3px">${p.name}</h3>
+    <p style="font-size:13px;color:var(--text2)">Current: ${p.stock_qty} ${p.unit}</p></div>`;
+  document.getElementById('stockNewQty').value = p.stock_qty;
+  document.getElementById('stockModal').classList.add('open');
+}
+
+async function confirmStockUpdate() {
+  const qty = parseFloat(document.getElementById('stockNewQty').value);
+  if (isNaN(qty)) { alert('Enter valid quantity'); return; }
+  await api('PATCH', '/sm/products/' + stockUpdateId + '/stock', { set_to: qty });
+  closeM('stockModal');
+  await loadProducts();
+  toast('✅ Stock updated');
+}
+
+// ── HISTORY ───────────────────────────────────────────────────────────────────
+async function loadHistory() {
+  const from = document.getElementById('histFrom').value;
+  const to = document.getElementById('histTo').value;
+  const pay = document.getElementById('histPay').value;
+  let url = `/sm/bills?from=${from}&to=${to}`;
+  const bills = await api('GET', url);
+  const container = document.getElementById('histList'); if (!container) return;
+  let list = bills || [];
+  if (pay) list = list.filter(b => b.pay_mode === pay);
+  if (!list.length) { container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">No bills found</div>'; return; }
+  container.innerHTML = list.map(b => `
+    <div class="hist-item">
+      <div class="hist-top">
+        <span class="hist-no">#${String(b.no).padStart(3,'0')}</span>
+        <span class="hist-amt">${S.currency||'₹'}${parseFloat(b.grand_total).toFixed(2)}</span>
+      </div>
+      <div class="hist-meta">${b.customer} · ${b.pay_mode} · ${(Array.isArray(b.cart)?b.cart:JSON.parse(b.cart||'[]')).length} items</div>
+      <div class="hist-meta">${new Date(b.time).toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
+      <div class="hist-acts">
+        <button class="act-btn edit" onclick="showReceipt(${JSON.stringify(b).replace(/"/g,'&quot;')})">🧾 View</button>
+        <button class="act-btn del" onclick="deleteBill(${b.no})">🗑 Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+async function deleteBill(no) {
+  if (!confirm(`Delete Bill #${String(no).padStart(3,'0')}?`)) return;
+  await api('DELETE', '/sm/bills/' + no);
+  toast('🗑 Bill deleted');
+  loadHistory();
+  loadQuickStats();
+}
+
+// ── REPORTS ───────────────────────────────────────────────────────────────────
+function toggleRepDates() {
+  const t = document.getElementById('repType').value;
+  document.getElementById('repFrom').type = t === 'monthly' ? 'month' : 'date';
+  document.getElementById('repTo').style.display = t === 'custom' ? '' : 'none';
+}
+
+async function loadReports() {
+  const type = document.getElementById('repType').value;
+  const from = document.getElementById('repFrom').value;
+  const to = document.getElementById('repTo').value || from;
+  const d = await api('GET', `/sm/reports?type=${type}&from=${from}&to=${to}`);
+  const el = document.getElementById('repOut'); if (!el || !d) return;
+  const cur = S.currency || '₹';
+  const { summary: sm, productSales, catSales, payBreakdown, dailyTrend } = d;
+  if (!sm.totalBills) { el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">No bills in this period</div>'; return; }
+  const maxDay = dailyTrend.length ? Math.max(...dailyTrend.map(d => d.revenue)) : 1;
+  const maxProd = productSales.length ? Math.max(...productSales.map(p => p.amount)) : 1;
+  let h = `<div class="rep-grid">
+    <div class="rep-card"><div class="rep-card-lbl">Revenue</div><div class="rep-card-val g">${cur}${sm.totalRevenue.toFixed(0)}</div></div>
+    <div class="rep-card"><div class="rep-card-lbl">Bills</div><div class="rep-card-val">${sm.totalBills}</div></div>
+    <div class="rep-card"><div class="rep-card-lbl">Avg Bill</div><div class="rep-card-val gold">${cur}${sm.avgBillValue.toFixed(0)}</div></div>
+    <div class="rep-card"><div class="rep-card-lbl">Tax</div><div class="rep-card-val">${cur}${sm.totalTax.toFixed(0)}</div></div>
+  </div>`;
+  if (dailyTrend.length > 1) {
+    h += `<div class="chart-wrap">${dailyTrend.map(d=>`<div class="bar-col"><div class="bar-rect" style="height:${Math.max(4,(d.revenue/maxDay)*100)}%"></div><div class="bar-lbl">${d.date.slice(5)}</div></div>`).join('')}</div>`;
+  }
+  h += `<div class="two-col-rep">`;
+  if (productSales.length) {
+    h += `<div class="rep-panel"><div class="rep-panel-title">🏆 Top Products</div>
+      ${productSales.slice(0,8).map(p=>`<div class="rep-row">
+        <div style="display:flex;justify-content:space-between"><span>${p.emoji} ${p.name}</span><span style="font-weight:600;color:var(--grn)">${cur}${p.amount.toFixed(0)}</span></div>
+        <div style="font-size:10.5px;color:var(--text3)">${p.qty.toFixed(2)} ${p.unit} sold</div>
+        <div class="rep-bar"><div class="rep-bar-fill" style="width:${Math.round(p.amount/maxProd*100)}%"></div></div>
+      </div>`).join('')}
+    </div>`;
+  }
+  if (catSales.length) {
+    const maxCat = Math.max(...catSales.map(c=>c.revenue));
+    h += `<div class="rep-panel"><div class="rep-panel-title">📂 Categories</div>
+      ${catSales.map(c=>`<div class="rep-row">
+        <div style="display:flex;justify-content:space-between"><span>${c.cat}</span><span style="font-weight:600">${cur}${c.revenue.toFixed(0)}</span></div>
+        <div class="rep-bar"><div class="rep-bar-fill" style="width:${Math.round(c.revenue/maxCat*100)}%;background:var(--gold)"></div></div>
+      </div>`).join('')}
+    </div>`;
+  }
+  h += `</div>`;
+  if (payBreakdown.length) {
+    h += `<div class="rep-panel" style="margin-bottom:14px"><div class="rep-panel-title">💳 Payment Modes</div>
+      ${payBreakdown.map(p=>`<div class="rep-row" style="display:flex;justify-content:space-between">
+        <span>${p.mode}</span>
+        <div style="display:flex;gap:10px"><span style="color:var(--text3)">${p.count} bills</span><span style="font-weight:600">${cur}${p.revenue.toFixed(0)}</span></div>
+      </div>`).join('')}
+    </div>`;
+  }
+  el.innerHTML = h;
+}
+
+// ── QUICK PANEL ───────────────────────────────────────────────────────────────
+async function loadQuickStats() {
+  const today = new Date().toISOString().slice(0,10);
+  const bills = await api('GET', `/sm/bills?from=${today}&to=${today}`);
+  const todayRev = (bills||[]).reduce((s,b) => s + parseFloat(b.grand_total), 0);
+  const el1 = document.getElementById('qTodayRev'); if (el1) el1.textContent = '₹' + todayRev.toFixed(0);
+  const el2 = document.getElementById('qTodayBills'); if (el2) el2.textContent = (bills||[]).length;
+  // Low stock
+  const low = await api('GET', '/sm/low-stock');
+  const ls = document.getElementById('qLowStock'); if (!ls) return;
+  if (!low?.length) { ls.innerHTML = '<div style="font-size:12.5px;color:var(--text3)">✅ All stock OK</div>'; return; }
+  ls.innerHTML = low.slice(0,5).map(p => `
+    <div class="low-item">
+      <span class="li-name">${p.emoji} ${p.name}</span>
+      <span class="li-stock">${p.stock_qty} ${p.unit}</span>
+    </div>`).join('');
+}
+
+function updateQuickPanel() {
+  const sub = cart.reduce((s,c)=>s+c.amount, 0);
+  const el1 = document.getElementById('qBillItems'); if (el1) el1.textContent = cart.length;
+  const el2 = document.getElementById('qBillAmt'); if (el2) el2.textContent = '₹' + sub.toFixed(0);
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function closeM(id) { document.getElementById(id)?.classList.remove('open'); }
+document.querySelectorAll('.overlay').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); }));
+function toast(msg) {
+  const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t); setTimeout(() => t.remove(), 2500);
+}
+
+init();
+</script>
+</body>
+</html>
