@@ -1,3 +1,4 @@
+require('dotenv').config()
 const express    = require('express');
 const cors       = require('cors');
 const bcrypt     = require('bcryptjs');
@@ -9,7 +10,27 @@ const path = require('path');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
-const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
+
+// ── Dynamic BASE URL ──────────────────────────────────────────────────────────
+// On Vercel: reads x-forwarded-host + x-forwarded-proto headers (set by Vercel)
+// On Railway/Render: uses BASE_URL env var
+// Locally: falls back to localhost
+function getBaseUrl(req) {
+  // If BASE_URL is explicitly set in env, always use it (most reliable)
+  if (process.env.BASE_URL) return process.env.BASE_URL.replace(/\/$/, '');
+
+  // On Vercel / reverse proxies, detect from request headers
+  if (req) {
+    const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+    const host  = req.headers['x-forwarded-host'] || req.headers['host'] || '';
+    if (host && !host.includes('localhost')) {
+      return `${proto.split(',')[0].trim()}://${host}`;
+    }
+  }
+
+  // Local fallback
+  return `http://localhost:${PORT}`;
+}
 
 // ── Supabase ──────────────────────────────────────────────────────────────────
 // Set these in your .env file or Railway/Render/Vercel environment variables
@@ -91,7 +112,7 @@ async function sendVerifyEmail(toEmail, name, bizName, verifyUrl) {
       </p>
     </div>
     <div style="background:#f0ede6;padding:14px 32px;text-align:center;border-top:1px solid #dedad2">
-      <p style="color:#9a9a8a;font-size:12px;margin:0">BillEase · <a href="${BASE_URL}" style="color:#2e8a58">${BASE_URL}</a></p>
+      <p style="color:#9a9a8a;font-size:12px;margin:0">BillEase · <a href="${verifyUrl.split('/api')[0]}" style="color:#2e8a58">${verifyUrl.split('/api')[0]}</a></p>
     </div>
   </div>`;
 
@@ -129,7 +150,7 @@ app.post('/api/auth/register', async (req, res) => {
   const hashed      = await bcrypt.hash(password, 10);
   const verifyToken = uuidv4();
   const userId      = 'usr-' + uuidv4().slice(0, 8);
-  const verifyUrl   = `${BASE_URL}/api/auth/verify/${verifyToken}`;
+  const verifyUrl   = `${getBaseUrl(req)}/api/auth/verify/${verifyToken}`;
 
   // Insert user
   const { error: userErr } = await db.from('users').insert({
@@ -167,7 +188,8 @@ app.get('/api/auth/verify/:token', async (req, res) => {
   if (error || !user)
     return res.status(400).send('<h2 style="font-family:sans-serif;color:#c0392b;padding:40px">Invalid or expired verification link.</h2>');
   await db.from('users').update({ verified: true, verify_token: null }).eq('id', user.id);
-  res.redirect('/?verified=1');
+  const appUrl = getBaseUrl(req);
+  res.redirect(`${appUrl}/?verified=1`);
 });
 
 // POST /api/auth/login
