@@ -302,6 +302,36 @@ a{color:var(--grn);text-decoration:none}
   .rep-grid{grid-template-columns:1fr 1fr;gap:8px}
   .prod-grid{grid-template-columns:1fr 1fr}
 }
+
+/* ══ BARCODE SCANNER ══ */
+.scan-btn{background:var(--orange);border:none;color:#fff;padding:6px 12px;border-radius:var(--rsm);font-size:13px;cursor:pointer;display:flex;align-items:center;gap:5px;font-weight:500;white-space:nowrap;transition:.2s}
+.scan-btn:hover{background:#b8520a}
+.scan-btn.active{background:var(--red);animation:pulse 1.2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
+
+/* Scanner modal */
+.scanner-wrap{position:relative;width:100%;background:#000;border-radius:var(--rsm);overflow:hidden;margin-bottom:14px}
+.scanner-wrap video{width:100%;display:block;max-height:280px;object-fit:cover}
+.scanner-line{position:absolute;top:50%;left:8%;width:84%;height:2px;background:var(--red);box-shadow:0 0 8px var(--red);animation:scanline 1.8s linear infinite;transform:translateY(-50%)}
+@keyframes scanline{0%{top:20%}50%{top:80%}100%{top:20%}}
+.scanner-corners{position:absolute;inset:0;pointer-events:none}
+.scanner-corners::before,.scanner-corners::after{content:'';position:absolute;width:28px;height:28px;border-color:var(--orange);border-style:solid}
+.scanner-corners::before{top:12px;left:12px;border-width:3px 0 0 3px}
+.scanner-corners::after{top:12px;right:12px;border-width:3px 3px 0 0}
+.scanner-corners-b::before,.scanner-corners-b::after{content:'';position:absolute;width:28px;height:28px;border-color:var(--orange);border-style:solid}
+.scanner-corners-b::before{bottom:12px;left:12px;border-width:0 0 3px 3px}
+.scanner-corners-b::after{bottom:12px;right:12px;border-width:0 3px 3px 0}
+.scan-status{text-align:center;padding:10px;font-size:13.5px;color:var(--text2);background:var(--bg);border-radius:var(--rsm);margin-bottom:10px}
+.scan-status.found{background:var(--grn-lt);color:var(--grn);font-weight:600}
+.scan-status.notfound{background:var(--red-lt);color:var(--red)}
+.barcode-manual{display:flex;gap:7px;align-items:center}
+.barcode-manual input{flex:1;border:1.5px solid var(--bdr);border-radius:6px;padding:9px 12px;font-size:15px;outline:none;background:var(--bg);letter-spacing:2px}
+.barcode-manual input:focus{border-color:var(--grn2);background:#fff}
+.kbd-hint{font-size:11.5px;color:var(--text3);margin-top:6px;text-align:center}
+
+/* Keyboard wedge scanner indicator */
+.kbd-scan-active{position:fixed;top:var(--top-h);right:12px;background:var(--orange);color:#fff;padding:5px 12px;border-radius:0 0 8px 8px;font-size:12px;font-weight:500;z-index:91;display:none}
+.kbd-scan-active.show{display:block}
 </style>
 </head>
 <body>
@@ -338,6 +368,7 @@ a{color:var(--grn);text-decoration:none}
       <div class="prod-panel">
         <div class="prod-search">
           <input id="pSearch" placeholder="🔍 Search products…" oninput="filterProducts()">
+          <button class="scan-btn" id="scanBtnDesk" onclick="openScanner('desk')" title="Scan Barcode">📷 Scan</button>
         </div>
         <div class="prod-cats" id="prodCats"></div>
         <div class="prod-filter">
@@ -477,7 +508,10 @@ a{color:var(--grn);text-decoration:none}
   <div class="mob-overlay" id="mobOverlay" onclick="closeMobSlides()"></div>
   <!-- Mobile catalog slide -->
   <div class="slide-panel left-sp" id="catalogSlide">
-    <div class="prod-search"><input id="pSearchMob" placeholder="🔍 Search…" oninput="filterProductsMob()"></div>
+    <div class="prod-search">
+      <input id="pSearchMob" placeholder="🔍 Search…" oninput="filterProductsMob()">
+      <button class="scan-btn" id="scanBtnMob" onclick="openScanner('mob')" title="Scan Barcode">📷</button>
+    </div>
     <div class="prod-cats" id="prodCatsMob"></div>
     <div class="prod-filter">
       <button class="fchip on" id="fc-all-mob" onclick="setTypeFilterMob('all')">All</button>
@@ -487,6 +521,54 @@ a{color:var(--grn);text-decoration:none}
     <div class="prod-grid" id="prodGridMob"></div>
   </div>
 
+</div>
+
+
+<!-- Keyboard wedge indicator -->
+<div class="kbd-scan-active" id="kbdIndicator">⌨️ Scanner Ready</div>
+
+<!-- BARCODE SCANNER MODAL -->
+<div class="overlay" id="scannerModal">
+  <div class="modal" style="max-width:440px">
+    <h2>📷 Barcode Scanner</h2>
+
+    <!-- Camera scanner -->
+    <div id="cameraSection">
+      <div class="scanner-wrap" id="scannerWrap" style="display:none">
+        <video id="scannerVideo" autoplay playsinline muted></video>
+        <div class="scanner-line"></div>
+        <div class="scanner-corners"></div>
+        <div class="scanner-corners-b"></div>
+      </div>
+      <div class="scan-status" id="scanStatus">Click "Start Camera" to scan using device camera</div>
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <button class="btn btn-g" id="startCamBtn" onclick="startCamera()" style="flex:1">📷 Start Camera</button>
+        <button class="btn btn-r" id="stopCamBtn" onclick="stopCamera()" style="display:none;flex:1">⏹ Stop</button>
+        <select id="cameraSelect" style="flex:1;border:1.5px solid var(--bdr);border-radius:6px;padding:6px 8px;font-size:12.5px;outline:none;background:var(--bg);display:none"></select>
+      </div>
+    </div>
+
+    <!-- Divider -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;color:var(--text3);font-size:12px">
+      <div style="flex:1;height:1px;background:var(--bdr)"></div>OR TYPE / SCAN BELOW<div style="flex:1;height:1px;background:var(--bdr)"></div>
+    </div>
+
+    <!-- Manual / USB wedge input -->
+    <div style="font-size:12px;font-weight:600;text-transform:uppercase;color:var(--text3);margin-bottom:6px">Enter or Scan Barcode</div>
+    <div class="barcode-manual">
+      <input type="text" id="barcodeInput" placeholder="Scan or type barcode…" autocomplete="off"
+        onkeydown="if(event.key==='Enter')lookupBarcode(this.value)">
+      <button class="btn btn-g" style="flex:0;padding:9px 14px" onclick="lookupBarcode(document.getElementById('barcodeInput').value)">Search</button>
+    </div>
+    <div class="kbd-hint">USB barcode scanners work automatically — just scan and the product will be found</div>
+
+    <!-- Result -->
+    <div id="scanResult" style="display:none;margin-top:14px"></div>
+
+    <div class="modal-acts" style="margin-top:14px">
+      <button class="btn btn-o" onclick="closeScanner()">Close</button>
+    </div>
+  </div>
 </div>
 
 <!-- QTY MODAL (for adding items to bill) -->
@@ -1404,6 +1486,224 @@ function toast(msg) {
 }
 
 init();
+initKeyboardWedge();
+
+// ══ BARCODE SCANNER ══════════════════════════════════════════════════════════
+let scannerStream = null;
+let scannerAnimFrame = null;
+let barcodeDetector = null;
+let scannerContext = 'desk'; // 'desk' or 'mob'
+let kbdBuffer = '';
+let kbdTimer = null;
+
+// ── Open scanner modal ────────────────────────────────────────────────────────
+function openScanner(ctx) {
+  scannerContext = ctx || 'desk';
+  document.getElementById('scannerModal').classList.add('open');
+  document.getElementById('barcodeInput').value = '';
+  document.getElementById('scanResult').style.display = 'none';
+  document.getElementById('scanStatus').textContent = 'Click "Start Camera" to scan using device camera';
+  document.getElementById('scanStatus').className = 'scan-status';
+  setTimeout(() => document.getElementById('barcodeInput').focus(), 300);
+}
+
+function closeScanner() {
+  stopCamera();
+  document.getElementById('scannerModal').classList.remove('open');
+}
+
+// ── Camera scanner ────────────────────────────────────────────────────────────
+async function startCamera() {
+  try {
+    // Check BarcodeDetector API support
+    if (!('BarcodeDetector' in window)) {
+      document.getElementById('scanStatus').textContent = '⚠️ Camera scanning not supported in this browser. Use Chrome on Android or iOS. Type barcode manually below.';
+      document.getElementById('scanStatus').className = 'scan-status notfound';
+      return;
+    }
+
+    barcodeDetector = new BarcodeDetector({
+      formats: ['ean_13','ean_8','upc_a','upc_e','code_128','code_39','qr_code','itf','codabar']
+    });
+
+    // Get available cameras
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cameras = devices.filter(d => d.kind === 'videoinput');
+    const camSel = document.getElementById('cameraSelect');
+    if (cameras.length > 1) {
+      camSel.innerHTML = cameras.map((c,i) => `<option value="${c.deviceId}">${c.label||'Camera '+(i+1)}</option>`).join('');
+      // prefer back camera
+      const back = cameras.find(c => c.label.toLowerCase().includes('back') || c.label.toLowerCase().includes('rear') || c.label.toLowerCase().includes('environment'));
+      if (back) camSel.value = back.deviceId;
+      camSel.style.display = '';
+      camSel.onchange = () => { stopCamera(); startCamera(); };
+    }
+
+    const constraints = {
+      video: cameras.length > 1
+        ? { deviceId: { exact: camSel.value || cameras[cameras.length-1].deviceId }, facingMode: 'environment' }
+        : { facingMode: { ideal: 'environment' } }
+    };
+
+    scannerStream = await navigator.mediaDevices.getUserMedia(constraints);
+    const video = document.getElementById('scannerVideo');
+    video.srcObject = scannerStream;
+    document.getElementById('scannerWrap').style.display = '';
+    document.getElementById('startCamBtn').style.display = 'none';
+    document.getElementById('stopCamBtn').style.display = '';
+    document.getElementById('scanStatus').textContent = '🔍 Scanning… Point camera at barcode';
+    document.getElementById('scanStatus').className = 'scan-status';
+
+    // Start detection loop
+    detectBarcode();
+  } catch (err) {
+    let msg = '⚠️ Camera error: ' + err.message;
+    if (err.name === 'NotAllowedError') msg = '⚠️ Camera permission denied. Allow camera access and try again.';
+    if (err.name === 'NotFoundError') msg = '⚠️ No camera found on this device.';
+    document.getElementById('scanStatus').textContent = msg;
+    document.getElementById('scanStatus').className = 'scan-status notfound';
+  }
+}
+
+async function detectBarcode() {
+  const video = document.getElementById('scannerVideo');
+  if (!video.readyState || video.readyState < 2) {
+    scannerAnimFrame = requestAnimationFrame(detectBarcode);
+    return;
+  }
+  try {
+    const barcodes = await barcodeDetector.detect(video);
+    if (barcodes.length > 0) {
+      const code = barcodes[0].rawValue;
+      document.getElementById('scanStatus').textContent = `✅ Found: ${code}`;
+      document.getElementById('scanStatus').className = 'scan-status found';
+      stopCamera();
+      document.getElementById('barcodeInput').value = code;
+      await lookupBarcode(code);
+      return;
+    }
+  } catch {}
+  scannerAnimFrame = requestAnimationFrame(detectBarcode);
+}
+
+function stopCamera() {
+  if (scannerAnimFrame) { cancelAnimationFrame(scannerAnimFrame); scannerAnimFrame = null; }
+  if (scannerStream) { scannerStream.getTracks().forEach(t => t.stop()); scannerStream = null; }
+  const video = document.getElementById('scannerVideo');
+  if (video) { video.srcObject = null; }
+  document.getElementById('scannerWrap').style.display = 'none';
+  document.getElementById('startCamBtn').style.display = '';
+  document.getElementById('stopCamBtn').style.display = 'none';
+}
+
+// ── Barcode lookup ────────────────────────────────────────────────────────────
+async function lookupBarcode(code) {
+  code = (code || '').trim();
+  if (!code) return;
+
+  // Search in products
+  const found = products.find(p => p.barcode === code && p.active);
+  const resultEl = document.getElementById('scanResult');
+
+  if (found) {
+    resultEl.style.display = '';
+    resultEl.innerHTML = `
+      <div style="background:var(--grn-lt);border:1.5px solid var(--grn2);border-radius:var(--rsm);padding:14px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <span style="font-size:28px">${found.emoji}</span>
+          <div>
+            <div style="font-weight:600;font-size:14px">${found.name}</div>
+            <div style="font-size:12px;color:var(--text2)">${found.category}${found.brand?' · '+found.brand:''}</div>
+            <div style="font-size:13px;color:var(--grn);font-weight:600">₹${found.price_per_unit}/${found.unit}</div>
+          </div>
+        </div>
+        <button class="btn btn-g" style="width:100%" onclick="closeScanner();openQtyModal(${found.id})">
+          + Add to Bill
+        </button>
+      </div>`;
+    document.getElementById('scanStatus').textContent = '✅ Product found!';
+    document.getElementById('scanStatus').className = 'scan-status found';
+  } else {
+    resultEl.style.display = '';
+    resultEl.innerHTML = `
+      <div style="background:var(--red-lt);border:1.5px solid var(--red);border-radius:var(--rsm);padding:14px;text-align:center">
+        <div style="font-size:22px;margin-bottom:6px">❌</div>
+        <div style="font-weight:600;margin-bottom:4px">Barcode not found</div>
+        <div style="font-size:12.5px;color:var(--text2);margin-bottom:10px">No product with barcode <strong>${code}</strong></div>
+        <button class="btn btn-g" style="width:100%" onclick="closeScanner();openAddProduct();setTimeout(()=>document.getElementById('pm-barcode').value='${code}',300)">
+          + Add as New Product
+        </button>
+      </div>`;
+    document.getElementById('scanStatus').textContent = '❌ Not found — ' + code;
+    document.getElementById('scanStatus').className = 'scan-status notfound';
+  }
+}
+
+// ── USB / Bluetooth keyboard wedge scanner ────────────────────────────────────
+// Hardware scanners send keystrokes very fast then Enter
+// We capture them globally when scanner modal is NOT open
+function initKeyboardWedge() {
+  let lastKeyTime = 0;
+
+  document.addEventListener('keydown', (e) => {
+    // Don't intercept if modal is open or user is typing in an input
+    if (document.getElementById('scannerModal').classList.contains('open')) return;
+    const tag = document.activeElement?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+    const now = Date.now();
+    const isBarcodeScan = (now - lastKeyTime) < 80; // scanner sends keys < 80ms apart
+    lastKeyTime = now;
+
+    if (e.key === 'Enter') {
+      if (kbdBuffer.length >= 4) {
+        // It's a barcode scan!
+        const code = kbdBuffer;
+        kbdBuffer = '';
+        clearTimeout(kbdTimer);
+        handleKbdScan(code);
+      }
+      kbdBuffer = '';
+      return;
+    }
+
+    if (e.key.length === 1) { // printable chars only
+      kbdBuffer += e.key;
+      clearTimeout(kbdTimer);
+      kbdTimer = setTimeout(() => { kbdBuffer = ''; }, 500);
+
+      // Show indicator
+      const ind = document.getElementById('kbdIndicator');
+      ind.classList.add('show');
+      ind.textContent = '⌨️ Scanning: ' + kbdBuffer;
+      clearTimeout(ind._timer);
+      ind._timer = setTimeout(() => { ind.classList.remove('show'); ind.textContent = '⌨️ Scanner Ready'; kbdBuffer = ''; }, 1500);
+    }
+  });
+}
+
+async function handleKbdScan(code) {
+  const ind = document.getElementById('kbdIndicator');
+  ind.textContent = '🔍 Looking up: ' + code;
+
+  const found = products.find(p => p.barcode === code && p.active);
+  if (found) {
+    ind.textContent = '✅ ' + found.name;
+    ind.style.background = 'var(--grn)';
+    setTimeout(() => { ind.classList.remove('show'); ind.style.background = ''; ind.textContent = '⌨️ Scanner Ready'; }, 2000);
+    openQtyModal(found.id);
+  } else {
+    ind.textContent = '❌ Barcode not found: ' + code;
+    ind.style.background = 'var(--red)';
+    setTimeout(() => { ind.classList.remove('show'); ind.style.background = ''; ind.textContent = '⌨️ Scanner Ready'; }, 3000);
+    toast('❌ Barcode not found: ' + code);
+  }
+}
+
+// Enable keyboard wedge on page focus
+document.addEventListener('DOMContentLoaded', initKeyboardWedge);
+// ══ END BARCODE SCANNER ══════════════════════════════════════════════════════
+
 </script>
 </body>
 </html>
