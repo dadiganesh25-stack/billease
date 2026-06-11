@@ -938,6 +938,47 @@ app.get('/api/admin/clients/:id/items', auth, adminOnly, async (req, res) => {
 });
 
 // POST /api/admin/clients/:id/items  — add item for a client
+// POST /api/admin/clients/:id/items/bulk — bulk import for a client
+app.post('/api/admin/clients/:id/items/bulk', auth, adminOnly, async (req, res) => {
+  const cid = req.params.id;
+  const { items, mode = 'skip' } = req.body;
+  if (!Array.isArray(items) || !items.length)
+    return res.status(400).json({ error: 'items array required' });
+  const valid = [], errors = [];
+  items.forEach((row, i) => {
+    const name  = (row.name || row.Name || row.ITEM || row.item || '').toString().trim();
+    const price = parseFloat(row.price || row.Price || row.PRICE || row.rate || row.Rate || 0);
+    const cat   = (row.category || row.Category || row.cat || 'General').toString().trim();
+    const emoji = (row.emoji || row.Emoji || row.icon || '🛒').toString().trim();
+    if (!name)            { errors.push({ row: i+1, error: 'Name required' }); return; }
+    if (!price || price <= 0) { errors.push({ row: i+1, name, error: 'Price must be > 0' }); return; }
+    valid.push({ name, price, cat, emoji });
+  });
+  if (!valid.length) return res.json({ success: false, imported: 0, errors });
+  let imported = 0, skipped = 0;
+  if (mode === 'overwrite') {
+    await db.from('items').delete().eq('user_id', cid);
+    const { data, error } = await db.from('items').insert(valid.map(v => ({ ...v, user_id: cid }))).select();
+    if (error) return dbErr(res, error);
+    imported = data.length;
+  } else if (mode === 'append') {
+    const { data, error } = await db.from('items').insert(valid.map(v => ({ ...v, user_id: cid }))).select();
+    if (error) return dbErr(res, error);
+    imported = data.length;
+  } else {
+    const { data: ex } = await db.from('items').select('name').eq('user_id', cid);
+    const exNames = new Set((ex || []).map(e => e.name.toLowerCase()));
+    const toIns = valid.filter(v => { if (exNames.has(v.name.toLowerCase())) { skipped++; return false; } return true; });
+    if (toIns.length) {
+      const { data, error } = await db.from('items').insert(toIns.map(v => ({ ...v, user_id: cid }))).select();
+      if (error) return dbErr(res, error);
+      imported = data.length;
+    }
+  }
+  res.json({ success: true, imported, skipped, errors,
+    message: `${imported} items imported${skipped ? `, ${skipped} skipped` : ''}${errors.length ? `, ${errors.length} errors` : ''}` });
+});
+
 app.post('/api/admin/clients/:id/items', auth, adminOnly, async (req, res) => {
   const { name, price, cat, emoji } = req.body;
   if (!name || !price || !cat) return res.status(400).json({ error: 'name, price, cat required' });
@@ -968,12 +1009,6 @@ app.delete('/api/admin/clients/:id/items/:itemId', auth, adminOnly, async (req, 
   res.json({ success: true });
 });
 
-// POST /api/admin/clients/:id/items/bulk — bulk import for a client
-app.post('/api/admin/clients/:id/items/bulk', auth, adminOnly, async (req, res) => {
-  // Reuse the bulk import logic by temporarily setting clientId to target
-  req.query.clientId = req.params.id;
-  return require('express').Router().post('/fake', async (fakeReq, fakeRes) => {}); // workaround: call handler directly
-});
 
 // GET /api/admin/clients/:id/sm-products  — get all SM products for a client
 app.get('/api/admin/clients/:id/sm-products', auth, adminOnly, async (req, res) => {
@@ -983,43 +1018,6 @@ app.get('/api/admin/clients/:id/sm-products', auth, adminOnly, async (req, res) 
 });
 
 // POST /api/admin/clients/:id/sm-products — add SM product for a client
-app.post('/api/admin/clients/:id/sm-products', auth, adminOnly, async (req, res) => {
-  const { name, price_per_unit, unit, item_type, category, emoji, brand, stock_qty, low_stock_alert, barcode, hsn_code, tax_rate } = req.body;
-  if (!name || !price_per_unit) return res.status(400).json({ error: 'name and price_per_unit required' });
-  const { data, error } = await db.from('sm_products').insert({
-    user_id: req.params.id, name, price_per_unit: parseFloat(price_per_unit),
-    unit: unit || 'pcs', item_type: item_type || 'packet',
-    category: category || 'General', emoji: emoji || '🛒',
-    brand: brand || null, stock_qty: parseFloat(stock_qty) || 0,
-    low_stock_alert: parseFloat(low_stock_alert) || 5,
-    barcode: barcode || null, hsn_code: hsn_code || null,
-    tax_rate: parseFloat(tax_rate) || 0, active: true
-  }).select().single();
-  if (error) return dbErr(res, error);
-  res.json({ success: true, product: data });
-});
-
-// PUT /api/admin/clients/:id/sm-products/:productId
-app.put('/api/admin/clients/:id/sm-products/:productId', auth, adminOnly, async (req, res) => {
-  const allowed = ['name','category','emoji','item_type','unit','price_per_unit','stock_qty','low_stock_alert','barcode','brand','hsn_code','tax_rate','active'];
-  const updates = {};
-  allowed.forEach(k => { if (req.body[k] !== undefined) updates[k] = req.body[k]; });
-  if (updates.price_per_unit) updates.price_per_unit = parseFloat(updates.price_per_unit);
-  if (updates.stock_qty !== undefined) updates.stock_qty = parseFloat(updates.stock_qty);
-  const { data, error } = await db.from('sm_products')
-    .update(updates).eq('id', req.params.productId).eq('user_id', req.params.id).select().single();
-  if (error) return dbErr(res, error);
-  res.json({ success: true, product: data });
-});
-
-// DELETE /api/admin/clients/:id/sm-products/:productId
-app.delete('/api/admin/clients/:id/sm-products/:productId', auth, adminOnly, async (req, res) => {
-  const { error } = await db.from('sm_products').update({ active: false })
-    .eq('id', req.params.productId).eq('user_id', req.params.id);
-  if (error) return dbErr(res, error);
-  res.json({ success: true });
-});
-
 // POST /api/admin/clients/:id/sm-products/bulk — bulk import SM products for a client
 app.post('/api/admin/clients/:id/sm-products/bulk', auth, adminOnly, async (req, res) => {
   const cid = req.params.id;
@@ -1071,7 +1069,50 @@ app.post('/api/admin/clients/:id/sm-products/bulk', auth, adminOnly, async (req,
     message: `${imported} products imported${skipped ? `, ${skipped} skipped` : ''}${errors.length ? `, ${errors.length} errors` : ''}` });
 });
 
+app.post('/api/admin/clients/:id/sm-products', auth, adminOnly, async (req, res) => {
+  const { name, price_per_unit, unit, item_type, category, emoji, brand, stock_qty, low_stock_alert, barcode, hsn_code, tax_rate } = req.body;
+  if (!name || !price_per_unit) return res.status(400).json({ error: 'name and price_per_unit required' });
+  const { data, error } = await db.from('sm_products').insert({
+    user_id: req.params.id, name, price_per_unit: parseFloat(price_per_unit),
+    unit: unit || 'pcs', item_type: item_type || 'packet',
+    category: category || 'General', emoji: emoji || '🛒',
+    brand: brand || null, stock_qty: parseFloat(stock_qty) || 0,
+    low_stock_alert: parseFloat(low_stock_alert) || 5,
+    barcode: barcode || null, hsn_code: hsn_code || null,
+    tax_rate: parseFloat(tax_rate) || 0, active: true
+  }).select().single();
+  if (error) return dbErr(res, error);
+  res.json({ success: true, product: data });
+});
+
+// PUT /api/admin/clients/:id/sm-products/:productId
+app.put('/api/admin/clients/:id/sm-products/:productId', auth, adminOnly, async (req, res) => {
+  const allowed = ['name','category','emoji','item_type','unit','price_per_unit','stock_qty','low_stock_alert','barcode','brand','hsn_code','tax_rate','active'];
+  const updates = {};
+  allowed.forEach(k => { if (req.body[k] !== undefined) updates[k] = req.body[k]; });
+  if (updates.price_per_unit) updates.price_per_unit = parseFloat(updates.price_per_unit);
+  if (updates.stock_qty !== undefined) updates.stock_qty = parseFloat(updates.stock_qty);
+  const { data, error } = await db.from('sm_products')
+    .update(updates).eq('id', req.params.productId).eq('user_id', req.params.id).select().single();
+  if (error) return dbErr(res, error);
+  res.json({ success: true, product: data });
+});
+
+// DELETE /api/admin/clients/:id/sm-products/:productId
+app.delete('/api/admin/clients/:id/sm-products/:productId', auth, adminOnly, async (req, res) => {
+  const { error } = await db.from('sm_products').update({ active: false })
+    .eq('id', req.params.productId).eq('user_id', req.params.id);
+  if (error) return dbErr(res, error);
+  res.json({ success: true });
+});
+
+
 // ═══════════════════════════════════════════════════════════════════════════════
+// 404 JSON handler — ensures API calls always get JSON back, never HTML
+app.use((req, res) => {
+  res.status(404).json({ error: `Route not found: ${req.method} ${req.path}` });
+});
+
 app.listen(PORT, () => {
   console.log(`\n✅  BillEase (Supabase) → http://localhost:${PORT}`);
   console.log(`🗄️   Supabase URL : ${SUPA_URL.slice(0,40)}...`);
