@@ -85,7 +85,7 @@ input,select,button{font-family:inherit;font-size:inherit}
 /* ADMIN */
 .adm-tabs{background:#fff;border-bottom:2px solid var(--bdr);display:flex;overflow-x:auto;scrollbar-width:none;position:sticky;top:56px;z-index:50}
 .adm-tabs::-webkit-scrollbar{display:none}
-.atab{padding:14px 20px;font-size:14px;font-weight:700;border:none;background:none;cursor:pointer;color:var(--t3);border-bottom:3px solid transparent;white-space:nowrap;margin-bottom:-2px;touch-action:manipulation}
+.atab{padding:12px 14px;font-size:13px;font-weight:700;border:none;background:none;cursor:pointer;color:var(--t3);border-bottom:3px solid transparent;white-space:nowrap;margin-bottom:-2px;touch-action:manipulation;flex-shrink:0}
 .atab.on{color:var(--g2);border-bottom-color:var(--g2)}
 .adm-body{padding:16px;max-width:1100px;margin:0 auto}
 .adm-h1{font-size:22px;font-weight:800;margin-bottom:4px}
@@ -133,6 +133,10 @@ input,select,button{font-family:inherit;font-size:inherit}
 .addrow{display:flex;flex-wrap:wrap;gap:7px;padding-top:12px;border-top:2px solid #f3f4f6;margin-top:4px}
 .addrow input,.addrow select{flex:1;min-width:80px;border:2px solid var(--bdr);border-radius:10px;padding:10px;font-size:14px;outline:none;-webkit-appearance:none;background:#f9fafb}
 .addrow input:focus,.addrow select:focus{border-color:var(--g2);background:#fff}
+@media(max-width:480px){
+  .addrow{flex-direction:column}
+  .addrow input,.addrow select{min-width:0;width:100%}
+}
 .prow{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f9fafb;border:2px solid var(--bdr);border-radius:10px;margin-bottom:7px}
 .pr-em{font-size:20px;flex-shrink:0}.pr-nm{flex:1;font-size:14px;font-weight:700}
 .pr-pr{font-size:13px;color:var(--g2);font-weight:700;min-width:55px;text-align:right}
@@ -345,7 +349,7 @@ input,select,button{font-family:inherit;font-size:inherit}
       <h2 id="clm-ttl" style="margin:0">Client</h2>
       <button onclick="closeM('cl-modal')" style="background:#f3f4f6;border:none;padding:7px 14px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">✕ Close</button>
     </div>
-    <div id="clm-kpis" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px"></div>
+    <div id="clm-kpis" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;min-width:0"></div>
     <div class="mtabs">
       <button class="mtab on" id="cmt-bills" onclick="clTab('bills',this)">🧾 Bills</button>
       <button class="mtab" id="cmt-items" onclick="clTab('items',this)">🍽️ RST Items</button>
@@ -581,21 +585,48 @@ async function admCl(){
   const el=document.getElementById('adm-body');
   el.innerHTML='<div style="padding:24px;text-align:center;color:var(--t3)">Loading…</div>';
   admClients=await api('GET','/admin/clients')||[];
-  el.innerHTML=`<div class="adm-h1">Client Management</div><div class="adm-h2">Manage all registered accounts</div>
-    <div class="ctbl">
-      <div class="ct-hd"><div>Business / Owner</div><div>Bills</div><div>Revenue</div><div>Actions</div></div>
-      ${admClients.length?admClients.map(c=>`
-        <div class="ct-row">
-          <div><div style="font-weight:700">${c.biz_name||c.bizName||''}</div><div style="font-size:12px;color:var(--t3)">${c.name} · ${c.email}</div><span class="badge ${c.verified?'badge-g':'badge-y'}" style="margin-top:3px;display:inline-block">${c.verified?'Active':'Pending'}</span></div>
-          <div style="font-weight:700">${c.billCount||0}</div>
-          <div style="font-weight:800;color:var(--g2)">₹${(c.totalRevenue||0).toFixed(0)}</div>
-          <div class="row-acts">
-            ${!c.verified?`<button class="rbtn rbtn-g" onclick="verCl('${c.id}')">✓ Verify</button>`:''}
-            <button class="rbtn rbtn-g" onclick="openClModal('${c.id}')">View</button>
-            <button class="rbtn rbtn-r" onclick="delCl('${c.id}')">Del</button>
+  el.innerHTML=`
+    <div class="adm-h1">Client Management</div>
+    <div class="adm-h2">Manage all registered accounts</div>
+    ${admClients.length ? admClients.map(c=>`
+      <div style="background:#fff;border:2px solid var(--bdr);border-radius:16px;padding:16px;margin-bottom:12px">
+        <!-- Top row: name + status badge -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:16px;font-weight:800;margin-bottom:2px">${c.biz_name||c.bizName||''}</div>
+            <div style="font-size:12.5px;color:var(--t3);margin-bottom:4px">${c.name}</div>
+            <div style="font-size:12px;color:var(--t3);word-break:break-all">${c.email}</div>
           </div>
-        </div>`).join(''):'<div style="padding:20px;text-align:center;color:var(--t3)">No clients</div>'}
-    </div>`;
+          <span class="badge ${c.verified?'badge-g':'badge-y'}" style="flex-shrink:0">${c.verified?'✅ Active':'⏳ Pending'}</span>
+        </div>
+        <!-- Stats row -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+          <div style="background:#f9fafb;border-radius:10px;padding:10px;text-align:center">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--t3);margin-bottom:3px">Bills</div>
+            <div style="font-size:18px;font-weight:800">${c.billCount||0}</div>
+          </div>
+          <div style="background:#f9fafb;border-radius:10px;padding:10px;text-align:center">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--t3);margin-bottom:3px">Revenue</div>
+            <div style="font-size:16px;font-weight:800;color:var(--g2)">₹${(c.totalRevenue||0).toFixed(0)}</div>
+          </div>
+          <div style="background:#f9fafb;border-radius:10px;padding:10px;text-align:center">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--t3);margin-bottom:3px">Items</div>
+            <div style="font-size:18px;font-weight:800">${c.itemCount||0}</div>
+          </div>
+        </div>
+        <!-- Action buttons — full width, always visible -->
+        <div style="display:grid;grid-template-columns:${!c.verified?'1fr 1fr 1fr':'1fr 1fr'};gap:8px">
+          ${!c.verified?`<button onclick="verCl('${c.id}')"
+            style="padding:12px;border:none;border-radius:10px;background:var(--glt);color:var(--g);font-size:14px;font-weight:700;cursor:pointer;touch-action:manipulation">
+            ✓ Verify</button>`:''}
+          <button onclick="openClModal('${c.id}')"
+            style="padding:12px;border:none;border-radius:10px;background:#dbeafe;color:#1d4ed8;font-size:14px;font-weight:700;cursor:pointer;touch-action:manipulation">
+            👁 View</button>
+          <button onclick="delCl('${c.id}')"
+            style="padding:12px;border:none;border-radius:10px;background:#fee2e2;color:#dc2626;font-size:14px;font-weight:700;cursor:pointer;touch-action:manipulation">
+            🗑 Delete</button>
+        </div>
+      </div>`).join('') : '<div style="padding:32px;text-align:center;color:var(--t3)">No clients yet</div>'}`;
 }
 async function verCl(id){await api('PUT','/admin/clients/'+id+'/verify');toast('✅ Verified');admCl();}
 async function delCl(id){if(!confirm('Delete client and ALL data?'))return;await api('DELETE','/admin/clients/'+id);toast('🗑 Deleted');admCl();}
