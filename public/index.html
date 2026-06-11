@@ -333,22 +333,43 @@ input,select,button{font-family:inherit;font-size:inherit}
     <div id="clm-kpis" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px"></div>
     <div class="mtabs">
       <button class="mtab on" id="cmt-bills" onclick="clTab('bills',this)">🧾 Bills</button>
-      <button class="mtab" id="cmt-items" onclick="clTab('items',this)">📦 Items</button>
-      <button class="mtab" id="cmt-prods" onclick="clTab('prods',this)">🛒 Products</button>
+      <button class="mtab" id="cmt-items" onclick="clTab('items',this)">🍽️ RST Items</button>
+      <button class="mtab" id="cmt-prods" onclick="clTab('prods',this)">🛒 SM Products</button>
     </div>
-    <div id="clm-body" style="max-height:300px;overflow-y:auto;-webkit-overflow-scrolling:touch"></div>
+    <div id="clm-body" style="max-height:280px;overflow-y:auto;-webkit-overflow-scrolling:touch"></div>
+
+    <!-- RST: Add item inline -->
     <div id="clm-add" style="display:none;margin-top:12px;padding-top:12px;border-top:2px solid #f3f4f6">
-      <div style="font-size:13px;font-weight:700;margin-bottom:8px">➕ Add Item</div>
+      <div style="font-size:13px;font-weight:700;color:#9a3412;margin-bottom:8px">🍽️ Add Restaurant Item</div>
       <div class="addrow">
-        <input id="ae-em" placeholder="🛒" style="max-width:50px;text-align:center;font-size:18px">
+        <input id="ae-em" placeholder="🍛" style="max-width:50px;text-align:center;font-size:18px">
         <input id="ae-nm" placeholder="Item name">
-        <input id="ae-pr" type="number" placeholder="Price" style="max-width:88px;-webkit-appearance:none">
+        <input id="ae-pr" type="number" placeholder="Price ₹" style="max-width:88px;-webkit-appearance:none" inputmode="decimal">
         <input id="ae-cat" placeholder="Category" value="Food" style="max-width:110px">
-        <button onclick="admAddItem()" style="background:var(--g2);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;flex:0">+ Add</button>
+        <button onclick="admAddItem()" style="background:#c2410c;color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;flex:0">+ Add</button>
       </div>
     </div>
+
+    <!-- SM: Add product inline -->
+    <div id="clm-add-prod" style="display:none;margin-top:12px;padding-top:12px;border-top:2px solid #f3f4f6">
+      <div style="font-size:13px;font-weight:700;color:var(--g);margin-bottom:8px">🛒 Add Supermarket Product</div>
+      <div class="addrow">
+        <input id="sp-em" placeholder="🛒" style="max-width:50px;text-align:center;font-size:18px">
+        <input id="sp-nm" placeholder="Product name" style="min-width:100px">
+        <input id="sp-pr" type="number" placeholder="Price ₹" style="max-width:80px;-webkit-appearance:none" inputmode="decimal">
+        <select id="sp-unit" style="max-width:72px"><option value="kg">kg</option><option value="g">g</option><option value="l">litre</option><option value="ml">ml</option><option value="pcs">pcs</option><option value="pack">pack</option></select>
+        <select id="sp-type" style="max-width:82px"><option value="loose">⚖️ Loose</option><option value="packet">📦 Packet</option></select>
+        <input id="sp-cat" placeholder="Category" style="max-width:100px" value="General">
+        <button onclick="admAddSMProd()" style="background:var(--g2);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;flex:0">+ Add</button>
+      </div>
+    </div>
+
+    <!-- Bulk import / export row -->
     <div id="clm-bulk" style="display:none;margin-top:12px;padding-top:12px;border-top:2px solid #f3f4f6">
-      <button id="clm-bulk-btn" onclick="admBulkImport()" style="background:#1d4ed8;color:#fff;border:none;border-radius:10px;padding:11px 16px;font-size:14px;font-weight:700;cursor:pointer">📥 Bulk Import</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button id="clm-bulk-btn" onclick="admBulkImport()" style="background:#1d4ed8;color:#fff;border:none;border-radius:10px;padding:11px 16px;font-size:14px;font-weight:700;cursor:pointer">📥 Bulk Import</button>
+        <button id="clm-export-btn" onclick="admExport()" style="background:#374151;color:#fff;border:none;border-radius:10px;padding:11px 16px;font-size:14px;font-weight:700;cursor:pointer">📤 Export CSV</button>
+      </div>
     </div>
   </div>
 </div>
@@ -396,7 +417,7 @@ async function doLogin() {
     if(!r.ok){showErr('lerr',d.error||'Login failed');return;}
     TOKEN=d.token; ME=d.user;
     localStorage.setItem('be_token',TOKEN); localStorage.setItem('be_me',JSON.stringify(ME));
-    if(ME.role==='admin'){goPg('pg-admin');initAdmin();}else{goPg('pg-dash');initDash();}
+    if(ME.role==='admin'){goPg('pg-admin');initAdmin();}else{routeClient(ME);}
   } catch { showErr('lerr','Cannot reach server.'); }
 }
 
@@ -419,22 +440,22 @@ async function doRegister() {
   } catch { showErr('rerr','Server error.'); }
 }
 
+function routeClient(me) {
+  // Read biz_type directly from user object (already in login response / localStorage)
+  // No extra API call = no blink
+  const bizType = me?.biz_type || me?.bizType || 'restaurant';
+  if (bizType === 'supermarket') {
+    window.location.replace('/supermarket.html');
+  } else {
+    window.location.replace('/restaurant.html');
+  }
+}
+
 async function initDash() {
+  // Legacy fallback — only called if somehow pg-dash is shown
   S = await api('GET','/settings')||{};
   normS();
-  const bizType = S.biz_type || S.bizType || ME?.biz_type || 'restaurant';
-  // Auto-redirect to the correct app based on biz_type
-  if (bizType === 'supermarket') {
-    window.location.href = '/supermarket.html';
-    return;
-  } else if (bizType === 'restaurant') {
-    window.location.href = '/restaurant.html';
-    return;
-  }
-  // Fallback: show dashboard for unknown types
-  setText('d-biz', S.bizName||S.biz_name||'My Store');
-  setText('d-nm', ME?.name||'');
-  const av=document.getElementById('d-av'); if(av) av.textContent=(ME?.name||'U')[0].toUpperCase();
+  routeClient(ME);
 }
 function normS(){const m={bizName:'biz_name',bizPhone:'biz_phone',taxEnabled:'tax_enabled',taxRate:'tax_rate',taxName:'tax_name',thankYou:'thank_you',billPrefix:'bill_prefix'};Object.entries(m).forEach(([c,s])=>{if(S[c]===undefined&&S[s]!==undefined)S[c]=S[s];});}
 
@@ -561,6 +582,7 @@ async function clTab(tab,btn){
   if(btn)btn.classList.add('on');
   const body=document.getElementById('clm-body');
   document.getElementById('clm-add').style.display='none';
+  document.getElementById('clm-add-prod').style.display='none';
   document.getElementById('clm-bulk').style.display='none';
   body.innerHTML='<div style="padding:16px;text-align:center;color:var(--t3)">Loading…</div>';
 
@@ -573,11 +595,14 @@ async function clTab(tab,btn){
     document.getElementById('clm-add').style.display='block';
     document.getElementById('clm-bulk').style.display='block';
     document.getElementById('clm-bulk-btn').textContent='📥 Bulk Import Items';
+    document.getElementById('clm-export-btn').textContent='📤 Export Items';
     body.innerHTML=items.length?items.map(it=>`<div class="prow"><span class="pr-em">${it.emoji||'🛒'}</span><span class="pr-nm">${it.name}</span><span class="pr-pr">₹${it.price}</span><span class="pr-cat">${it.cat}</span><button onclick="admDelRSTItem('${cid}','${it.id}')" class="rbtn rbtn-r" style="padding:5px 10px;font-size:12px">Del</button></div>`).join(''):'<div style="text-align:center;padding:16px;color:var(--t3)">No items. Add below.</div>';
   } else if(tab==='prods'){
     const prods=await api('GET','/admin/clients/'+curCid+'/sm-products')||[];
+    document.getElementById('clm-add-prod').style.display='block';
     document.getElementById('clm-bulk').style.display='block';
     document.getElementById('clm-bulk-btn').textContent='📥 Bulk Import SM Products';
+    document.getElementById('clm-export-btn').textContent='📤 Export Products';
     body.innerHTML=prods.length?prods.map(p=>`<div class="prow"><span class="pr-em">${p.emoji||'🛒'}</span><div style="flex:1;min-width:0"><div class="pr-nm">${p.name}</div><div style="font-size:11.5px;color:var(--t3)">${p.category||''}${p.brand?' · '+p.brand:''}</div></div><span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:8px;background:${p.item_type==='loose'?'#fef3c7':'#dbeafe'};color:${p.item_type==='loose'?'#d97706':'#1d4ed8'};white-space:nowrap">${p.item_type}</span><span class="pr-pr">₹${p.price_per_unit}/${p.unit}</span><button onclick="admDelProd('${p.id}')" class="rbtn rbtn-r" style="padding:5px 10px;font-size:12px">Del</button></div>`).join(''):'<div style="text-align:center;padding:16px;color:var(--t3)">No SM products yet.</div>';
   }
 }
@@ -591,7 +616,34 @@ async function admAddItem(){
 async function admDelItem(itemId){if(!confirm('Delete?'))return;await api('DELETE','/admin/clients/'+curCid+'/items/'+itemId);toast('🗑 Deleted');clTab('items',document.getElementById('cmt-items'));}
 async function admDelRSTItem(cid,itemId){if(!confirm('Delete this item?'))return;await api('DELETE','/admin/clients/'+cid+'/items/'+itemId);toast('🗑 Deleted');rstTab('items',cid,document.getElementById('rstt-items'));}
 async function admDelProd(pid){if(!confirm('Delete?'))return;await api('DELETE','/admin/clients/'+curCid+'/sm-products/'+pid);toast('🗑 Deleted');clTab('prods',document.getElementById('cmt-prods'));}
+
+async function admAddSMProd(){
+  const em=document.getElementById('sp-em').value||'🛒';
+  const nm=document.getElementById('sp-nm').value.trim();
+  const pr=parseFloat(document.getElementById('sp-pr').value);
+  const unit=document.getElementById('sp-unit').value;
+  const type=document.getElementById('sp-type').value;
+  const cat=document.getElementById('sp-cat').value.trim()||'General';
+  if(!nm||!pr){alert('Name and price required');return;}
+  const res=await api('POST','/admin/clients/'+curCid+'/sm-products',{
+    name:nm, emoji:em, price_per_unit:pr, unit, item_type:type,
+    category:cat, stock_qty:0, low_stock_alert:5, active:true
+  });
+  if(res?.success){
+    toast('✅ SM Product added');
+    ['sp-nm','sp-pr','sp-em'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    clTab('prods',document.getElementById('cmt-prods'));
+  } else { alert(res?.error||'Failed to add product'); }
+}
+
 function admBulkImport(){const t=curTab==='prods'?'sm':'items';window.location.href='/bulk-import.html?clientId='+curCid+'&type='+t+'&returnTo='+encodeURIComponent(window.location.pathname);}
+
+function admExport(){
+  const path=curTab==='prods'?`/api/sm/products/export?clientId=${curCid}`:`/api/items/export?clientId=${curCid}`;
+  const file=curTab==='prods'?`sm_products_${curCid}.csv`:`items_${curCid}.csv`;
+  authDL(path,file);
+}
+
 
 
 /* ════ ADMIN RESTAURANT TAB ════ */
@@ -1192,7 +1244,7 @@ function initBizTypeCards(){
 
 window.addEventListener('load',()=>{
   if(location.search.includes('verified=1')){document.getElementById('verok').style.display='block';history.replaceState({},'','/');}
-  if(TOKEN&&ME){if(ME.role==='admin'){goPg('pg-admin');initAdmin();}else{goPg('pg-dash');initDash();}}
+  if(TOKEN&&ME){if(ME.role==='admin'){goPg('pg-admin');initAdmin();}else{routeClient(ME);}}
   initBizTypeCards();
 });
 </script>
