@@ -307,11 +307,16 @@ input,select,button{font-family:inherit;font-size:inherit}
 
 <!-- TOP BAR -->
 <div class="hdr">
-  <div class="hdr-logo">🛒 Supermarket — BillEase</div>
+  <div class="hdr-logo" style="display:flex;flex-direction:column;gap:1px">
+    <div style="display:flex;align-items:center;gap:7px">
+      <span>🛒</span>
+      <span id="biz-nm" style="font-size:17px;font-weight:800;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Supermarket</span>
+    </div>
+    <div style="font-size:10px;font-weight:500;opacity:.65;letter-spacing:.03em">SUPERMARKET BILLING</div>
+  </div>
   <div class="hdr-r">
     <div class="av" id="uav">U</div>
     <button class="hbtn hbtn-g" onclick="saveBill()">✅ Save</button>
-    <button class="hbtn" onclick="window.location.href='/'">🏠 Home</button>
     <button class="hbtn hbtn-red" onclick="logout()">Exit</button>
   </div>
 </div>
@@ -646,6 +651,9 @@ const isMob=()=>window.innerWidth<=768;
 async function init() {
   S=await api('GET','/settings')||{}; normS();
   setText('uav',(ME.name||'U')[0].toUpperCase());
+  const bizName = S.bizName||S.biz_name||'My Store';
+  setText('biz-nm', bizName);
+  document.title = bizName + ' — BillEase';
   await loadProds();
   updateBillNo(); loadQuickStats();
   const today=new Date().toISOString().slice(0,10);

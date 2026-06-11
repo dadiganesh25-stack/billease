@@ -227,10 +227,15 @@ input,select,button{font-family:inherit;font-size:inherit}
 
 <!-- TOP BAR -->
 <div class="hdr">
-  <div class="hdr-logo">🍽️ Restaurant <small id="biz-nm">Billing</small></div>
+  <div class="hdr-logo" style="display:flex;flex-direction:column;gap:1px">
+    <div style="display:flex;align-items:center;gap:7px">
+      <span>🍽️</span>
+      <span id="biz-nm" style="font-size:17px;font-weight:800;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Restaurant</span>
+    </div>
+    <div style="font-size:10px;font-weight:500;opacity:.65;letter-spacing:.03em">RESTAURANT BILLING</div>
+  </div>
   <div class="hdr-r">
     <div class="av" id="av-el">R</div>
-    <button class="hbtn" onclick="window.location.href='/'">🏠 Home</button>
     <button class="hbtn hbtn-g" onclick="saveBill()">✅ Save</button>
     <button class="hbtn hbtn-red" onclick="logout()">Exit</button>
   </div>
@@ -445,7 +450,9 @@ function toast(msg){const t=document.createElement('div');t.className='toast';t.
 async function init(){
   S=await api('GET','/settings')||{}; normS();
   items=await api('GET','/items')||[];
-  setText('biz-nm',S.bizName||S.biz_name||'My Restaurant');
+  const bizName = S.bizName||S.biz_name||'My Restaurant';
+  setText('biz-nm', bizName);
+  document.title = bizName + ' — BillEase';
   setText('av-el',(ME.name||'R')[0].toUpperCase());
   updateBillNo(); renderCats(); renderDesk(); renderMob();
   if(!isMob()) drTab('s');

@@ -405,10 +405,10 @@ async function doImport() {
   try {
     let endpoint, payload;
     if (importType === 'items') {
-      endpoint = adminClientId ? `/api/admin/clients/${adminClientId}/items/bulk` : '/api/items/bulk';
+      endpoint = adminClientId ? `/admin/clients/${adminClientId}/items/bulk` : '/items/bulk';
       payload = { items: parsedRows, mode: importMode };
     } else {
-      endpoint = adminClientId ? `/api/admin/clients/${adminClientId}/sm-products/bulk` : '/api/sm/products/bulk';
+      endpoint = adminClientId ? `/admin/clients/${adminClientId}/sm-products/bulk` : '/sm/products/bulk';
       payload = { products: parsedRows, mode: importMode };
     }
     const r = await fetch(API + endpoint, {
@@ -416,7 +416,18 @@ async function doImport() {
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
       body: JSON.stringify(payload),
     });
-    const d = await r.json();
+    const text = await r.text();
+    let d;
+    try { d = JSON.parse(text); } catch {
+      btn.disabled = false; txt.style.display = ''; spin.style.display = 'none';
+      alert('Import failed (HTTP ' + r.status + '):\nEndpoint: ' + endpoint + '\n\nServer returned HTML instead of JSON. Deploy the latest server.js.');
+      return;
+    }
+    if (!r.ok) {
+      btn.disabled = false; txt.style.display = ''; spin.style.display = 'none';
+      alert('Import failed: ' + (d.error || d.message || r.statusText));
+      return;
+    }
     goStep(4);
     const ok = d.imported > 0;
     document.getElementById('resultCard').innerHTML = `

@@ -226,7 +226,13 @@ input,select,button{font-family:inherit;font-size:inherit}
               </label>
             </div>
           </div>
-          <div class="fl"><label>Business Name *</label><input type="text" id="r-biz" placeholder="Hotel Grand / Kirana Store…"></div>
+          <div class="fl">
+            <label id="r-biz-lbl" style="display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--t2);margin-bottom:6px">🍽️ Restaurant Name *</label>
+            <input type="text" id="r-biz" placeholder="e.g. Hotel Grand, Café Sunrise, Ravi Dhaba" autocomplete="organization"
+              style="width:100%;padding:15px 14px;border:2px solid var(--bdr);border-radius:12px;font-size:16px;outline:none;background:#f9fafb;-webkit-appearance:none;transition:.2s"
+              oninput="updateBizPreview()">
+            <div id="r-biz-preview" style="display:none;margin-top:8px;padding:10px 14px;border-radius:10px;font-size:14px;font-weight:700"></div>
+          </div>
           <div class="f2">
             <div class="fl"><label>Address</label><input type="text" id="r-addr" placeholder="123 MG Road"></div>
             <div class="fl"><label>Phone</label><input type="tel" id="r-ph" placeholder="9876543210" inputmode="tel"></div>
@@ -260,10 +266,19 @@ input,select,button{font-family:inherit;font-size:inherit}
     </div>
   </div>
   <div class="dash-wrap">
-    <div class="welcome">
-      <h2>Good day! 👋</h2>
-      <p>Choose your billing mode</p>
-      <span class="wbiz" id="d-biz">My Store</span>
+    <div class="welcome" id="d-welcome">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <div id="d-biz-ico" style="font-size:36px;flex-shrink:0">🏪</div>
+        <div>
+          <div id="d-biz" style="font-size:22px;font-weight:800;line-height:1.2">My Store</div>
+          <div id="d-biz-type" style="font-size:13px;opacity:.75;margin-top:3px">Billing App</div>
+        </div>
+      </div>
+      <div id="d-biz-owner" style="font-size:13px;opacity:.7;margin-bottom:8px"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <span id="d-biz-badge" class="wbiz">🍽️ Restaurant</span>
+        <span class="wbiz" id="d-owner-badge"></span>
+      </div>
     </div>
     <div class="sec">Select Billing Mode</div>
     <a class="app-card rst" href="/restaurant.html">
@@ -441,8 +456,6 @@ async function doRegister() {
 }
 
 function routeClient(me) {
-  // Read biz_type directly from user object (already in login response / localStorage)
-  // No extra API call = no blink
   const bizType = me?.biz_type || me?.bizType || 'restaurant';
   if (bizType === 'supermarket') {
     window.location.replace('/supermarket.html');
@@ -452,9 +465,35 @@ function routeClient(me) {
 }
 
 async function initDash() {
-  // Legacy fallback — only called if somehow pg-dash is shown
   S = await api('GET','/settings')||{};
   normS();
+  const bizName = S.bizName || S.biz_name || ME?.biz_name || 'My Store';
+  const bizType = S.biz_type || S.bizType || ME?.biz_type || 'restaurant';
+  const isRST = bizType === 'restaurant';
+
+  // Populate banner
+  setText('d-biz', bizName);
+  setText('d-nm', ME?.name||'');
+  setText('d-biz-type', isRST ? 'Restaurant Billing' : 'Supermarket Billing');
+  setText('d-biz-owner', 'Owner: ' + (ME?.name||''));
+  setText('d-owner-badge', ME?.name ? '👤 ' + ME.name : '');
+
+  const ico = document.getElementById('d-biz-ico');
+  if (ico) ico.textContent = isRST ? '🍽️' : '🛒';
+
+  const badge = document.getElementById('d-biz-badge');
+  if (badge) badge.textContent = isRST ? '🍽️ Restaurant' : '🛒 Supermarket';
+
+  const welcome = document.getElementById('d-welcome');
+  if (welcome) {
+    welcome.style.background = isRST
+      ? 'linear-gradient(135deg,#9a3412,#c2410c)'
+      : 'linear-gradient(135deg,#166534,#15803d)';
+  }
+
+  const av = document.getElementById('d-av');
+  if (av) av.textContent = (ME?.name||'U')[0].toUpperCase();
+
   routeClient(ME);
 }
 function normS(){const m={bizName:'biz_name',bizPhone:'biz_phone',taxEnabled:'tax_enabled',taxRate:'tax_rate',taxName:'tax_name',thankYou:'thank_you',billPrefix:'bill_prefix'};Object.entries(m).forEach(([c,s])=>{if(S[c]===undefined&&S[s]!==undefined)S[c]=S[s];});}
@@ -1227,19 +1266,52 @@ async function loadAR(){
 }
 
 // Highlight biz type cards on radio change
+function updateBizPreview() {
+  const val = document.getElementById('r-biz')?.value?.trim() || '';
+  const type = document.querySelector('input[name="biz_type"]:checked')?.value || 'restaurant';
+  const prev = document.getElementById('r-biz-preview');
+  if (!prev) return;
+  if (val.length > 0) {
+    const isRST = type === 'restaurant';
+    prev.style.display = 'block';
+    prev.style.background = isRST ? '#fff7ed' : 'var(--glt)';
+    prev.style.color = isRST ? '#9a3412' : 'var(--g)';
+    prev.textContent = (isRST ? '🍽️' : '🛒') + ' ' + val;
+  } else {
+    prev.style.display = 'none';
+  }
+}
+
 function initBizTypeCards(){
-  document.querySelectorAll('input[name="biz_type"]').forEach(radio=>{
-    radio.addEventListener('change',()=>{
-      // Reset both
-      const rstLbl=document.getElementById('btype-rst');
-      const smLbl=document.getElementById('btype-sm');
-      if(rstLbl){rstLbl.style.background='#f9fafb';rstLbl.style.borderColor='var(--bdr)';}
-      if(smLbl){smLbl.style.background='#f9fafb';smLbl.style.borderColor='var(--bdr)';}
-      // Highlight selected
-      if(radio.value==='restaurant'&&rstLbl){rstLbl.style.background='#fff7ed';rstLbl.style.borderColor='#c2410c';}
-      if(radio.value==='supermarket'&&smLbl){smLbl.style.background='var(--glt)';smLbl.style.borderColor='var(--g2)';}
-    });
+  function applyType(type) {
+    const rstLbl = document.getElementById('btype-rst');
+    const smLbl  = document.getElementById('btype-sm');
+    const lbl    = document.getElementById('r-biz-lbl');
+    const inp    = document.getElementById('r-biz');
+    const isRST  = type === 'restaurant';
+
+    // Highlight cards
+    if (rstLbl) { rstLbl.style.background = isRST ? '#fff7ed' : '#f9fafb'; rstLbl.style.borderColor = isRST ? '#c2410c' : 'var(--bdr)'; }
+    if (smLbl)  { smLbl.style.background  = isRST ? '#f9fafb' : 'var(--glt)'; smLbl.style.borderColor = isRST ? 'var(--bdr)' : 'var(--g2)'; }
+
+    // Update label
+    if (lbl) lbl.textContent = isRST ? '🍽️ Restaurant Name *' : '🛒 Supermarket / Shop Name *';
+
+    // Update placeholder
+    if (inp) inp.placeholder = isRST
+      ? 'e.g. Hotel Grand, Café Sunrise, Ravi Dhaba'
+      : 'e.g. Sri Ram Kirana, Fresh Mart, Super Bazaar';
+
+    // Update preview
+    updateBizPreview();
+  }
+
+  document.querySelectorAll('input[name="biz_type"]').forEach(radio => {
+    radio.addEventListener('change', () => applyType(radio.value));
   });
+
+  // Apply default (restaurant is pre-selected)
+  applyType('restaurant');
 }
 
 window.addEventListener('load',()=>{
