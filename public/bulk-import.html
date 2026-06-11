@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#166534">
+<title>BillEase — Bulk Import</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
+body{font-family:'Inter',sans-serif;font-size:16px;background:#f0fdf4;color:#111827;min-height:100vh}
+:root{--g:#166534;--g2:#15803d;--glt:#dcfce7;--orange:#d97706;--olt:#fef3c7;--blue:#1d4ed8;--blt:#dbeafe;--red:#dc2626;--rlt:#fee2e2;--bdr:#e5e7eb;--r:16px;--rm:12px}
+.hdr{background:var(--g);color:#fff;padding:0 16px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.hdr-logo{font-size:17px;font-weight:800}
+.hdr-back{background:rgba(255,255,255,.18);border:none;color:#fff;padding:8px 14px;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;touch-action:manipulation}
+.hdr-back:active{background:rgba(255,255,255,.32)}
+.main{max-width:720px;margin:0 auto;padding:20px 16px 60px}
+/* Steps */
+.steps{display:flex;align-items:center;gap:0;margin-bottom:26px}
+.step{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:60px}
+.snum{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;transition:.2s;flex-shrink:0}
+.snum.done{background:var(--g2);color:#fff}
+.snum.active{background:var(--g2);color:#fff;box-shadow:0 0 0 4px rgba(21,128,61,.2)}
+.snum.pending{background:#e5e7eb;color:#9ca3af}
+.slbl{font-size:11px;font-weight:600;color:#9ca3af;white-space:nowrap}
+.slbl.done,.slbl.active{color:var(--g2)}
+.sline{flex:1;height:2px;background:#e5e7eb;min-width:16px}
+.sline.done{background:var(--g2)}
+/* Cards */
+.card{background:#fff;border-radius:var(--r);border:2px solid var(--bdr);padding:22px 18px;margin-bottom:14px}
+.card h2{font-size:18px;font-weight:800;margin-bottom:6px}
+.card .desc{font-size:14px;color:#6b7280;line-height:1.6;margin-bottom:18px}
+/* Type toggle */
+.type-toggle{display:flex;gap:10px;margin-bottom:18px}
+.typebtn{flex:1;padding:14px;border:2px solid var(--bdr);border-radius:var(--rm);background:#f9fafb;font-size:14px;font-weight:700;cursor:pointer;text-align:center;touch-action:manipulation;transition:.15s;-webkit-appearance:none;border:2px solid var(--bdr)}
+.typebtn.on{border-color:var(--g2);background:var(--glt);color:var(--g)}
+.typebtn:active{transform:scale(.98)}
+/* Mode select */
+.mode-tabs{display:flex;border:2px solid var(--bdr);border-radius:var(--rm);overflow:hidden;margin-bottom:16px}
+.modetab{flex:1;padding:12px 6px;border:none;background:#f9fafb;font-size:13px;font-weight:700;color:#6b7280;cursor:pointer;touch-action:manipulation;text-align:center;border-right:1px solid var(--bdr)}
+.modetab:last-child{border-right:none}
+.modetab.on{background:var(--g2);color:#fff}
+.mode-desc{background:#f9fafb;border:1px solid var(--bdr);border-radius:var(--rm);padding:12px 14px;font-size:13.5px;color:#374151;line-height:1.5;margin-bottom:6px}
+/* Download template */
+.tmpl-btn{display:flex;align-items:center;gap:12px;padding:14px 16px;border:2px solid var(--bdr);border-radius:var(--rm);background:#f9fafb;cursor:pointer;font-size:14px;font-weight:700;color:var(--blue);touch-action:manipulation;margin-bottom:14px;width:100%;text-align:left;-webkit-appearance:none}
+.tmpl-btn:active{border-color:var(--blue);background:var(--blt)}
+.tmpl-btn .ti{font-size:24px;flex-shrink:0}
+/* Drop zone */
+.dropzone{border:3px dashed var(--bdr);border-radius:var(--r);padding:32px 20px;text-align:center;cursor:pointer;background:#f9fafb;touch-action:manipulation;transition:border-color .2s}
+.dropzone:hover,.dropzone.over{border-color:var(--g2);background:var(--glt)}
+.dropzone .di{font-size:48px;margin-bottom:10px;display:block}
+.dropzone h3{font-size:16px;font-weight:800;margin-bottom:5px}
+.dropzone p{font-size:13.5px;color:#6b7280}
+.dropzone input[type=file]{display:none}
+.file-info{display:none;background:var(--glt);border-radius:var(--rm);padding:12px 14px;margin-top:12px;font-size:14px;font-weight:600;color:var(--g)}
+.or-d{display:flex;align-items:center;gap:10px;margin:14px 0;color:#9ca3af;font-size:13px}
+.or-d::before,.or-d::after{content:'';flex:1;height:1px;background:var(--bdr)}
+/* Preview */
+.summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px}
+.sbox{background:#f9fafb;border:2px solid var(--bdr);border-radius:var(--rm);padding:12px;text-align:center}
+.sbox .sl{font-size:11px;font-weight:700;text-transform:uppercase;color:#9ca3af;margin-bottom:3px}
+.sbox .sv{font-size:20px;font-weight:800}
+.sv.ok{color:var(--g2)}.sv.warn{color:var(--orange)}.sv.err{color:var(--red)}
+.mode-warn{border-radius:var(--rm);padding:12px 14px;font-size:13.5px;font-weight:600;margin-bottom:12px}
+.mode-warn.orange{background:var(--olt);color:var(--orange)}
+.mode-warn.red{background:var(--rlt);color:var(--red)}
+.tbl-wrap{overflow-x:auto;border-radius:var(--rm);border:2px solid var(--bdr);margin-bottom:12px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead tr{background:#f9fafb}
+th{padding:10px 11px;text-align:left;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#9ca3af;border-bottom:2px solid var(--bdr);white-space:nowrap}
+td{padding:10px 11px;border-bottom:1px solid #f3f4f6;color:#374151;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr.err-row{background:#fff5f5}
+.rbadge{display:inline-block;padding:2px 7px;border-radius:6px;font-size:11px;font-weight:700}
+.rbadge.ok{background:var(--glt);color:var(--g2)}
+.rbadge.error{background:var(--rlt);color:var(--red)}
+.err-list{background:var(--rlt);border-radius:var(--rm);padding:13px;margin-top:10px}
+.err-list h4{font-size:13px;font-weight:800;color:var(--red);margin-bottom:7px}
+.err-list ul{padding-left:18px}
+.err-list li{font-size:13px;color:var(--red);margin-bottom:3px}
+/* Buttons */
+.btn-row{display:flex;gap:10px;margin-top:16px}
+.btn{flex:1;padding:16px;border:none;border-radius:var(--rm);font-size:15px;font-weight:800;cursor:pointer;touch-action:manipulation;transition:.1s}
+.btn:active{transform:scale(.98)}
+.btn.ghost{background:#f3f4f6;color:#374151}
+.btn.green{background:var(--g2);color:#fff}
+.btn.green:disabled{background:#d1d5db;cursor:not-allowed;transform:none}
+/* Result */
+.result{border-radius:var(--r);padding:28px 22px;text-align:center;margin-bottom:14px}
+.result.ok{background:var(--glt);border:2px solid #86efac}
+.result.warn{background:var(--olt);border:2px solid #fcd34d}
+.result .ri{font-size:56px;margin-bottom:12px;display:block}
+.result h2{font-size:22px;font-weight:800;margin-bottom:8px}
+.result p{font-size:14px;color:#374151;line-height:1.6}
+/* Spinner */
+.spin{display:none;width:24px;height:24px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;margin:0 auto}
+@keyframes sp{to{transform:rotate(360deg)}}
+.tip{background:var(--olt);border:2px solid #fde68a;border-radius:var(--rm);padding:12px 14px;margin-bottom:14px;font-size:13px;color:#92400e;line-height:1.5}
+@media(max-width:480px){
+  .type-toggle{gap:7px}
+  .summary{gap:7px}
+  .btn{font-size:14px;padding:14px}
+  .main{padding:14px 12px 60px}
+}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="hdr-logo">📥 Bulk Import</div>
+  <button class="hdr-back" onclick="goBack()">← Back</button>
+</div>
+<div class="main">
+  <!-- Step bar -->
+  <div class="steps" id="stepBar">
+    <div class="step"><div class="snum active" id="sn1">1</div><div class="slbl active">Setup</div></div>
+    <div class="sline" id="sl1"></div>
+    <div class="step"><div class="snum pending" id="sn2">2</div><div class="slbl pending" id="sl2">Upload</div></div>
+    <div class="sline" id="sl2l"></div>
+    <div class="step"><div class="snum pending" id="sn3">3</div><div class="slbl pending" id="sl3">Preview</div></div>
+    <div class="sline" id="sl3l"></div>
+    <div class="step"><div class="snum pending" id="sn4">✓</div><div class="slbl pending" id="sl4">Done</div></div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div id="step1">
+    <div class="card">
+      <h2>Step 1 — What to Import</h2>
+      <div class="desc">Choose the product type and how to handle existing entries.</div>
+      <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#9ca3af;margin-bottom:8px">Product Type</div>
+      <div class="type-toggle">
+        <button class="typebtn on" id="type-items" onclick="setType('items')">🧾 Billing Items<br><span style="font-size:12px;font-weight:500;opacity:.7">Restaurant / Hotel</span></button>
+        <button class="typebtn" id="type-sm" onclick="setType('sm')">🛒 Supermarket Products<br><span style="font-size:12px;font-weight:500;opacity:.7">Grocery / Retail</span></button>
+      </div>
+      <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#9ca3af;margin-bottom:8px">Import Mode</div>
+      <div class="mode-tabs">
+        <button class="modetab on" id="m-skip" onclick="setMode('skip')">Skip Duplicates</button>
+        <button class="modetab" id="m-append" onclick="setMode('append')">Add All</button>
+        <button class="modetab" id="m-overwrite" onclick="setMode('overwrite')">Replace All ⚠️</button>
+      </div>
+      <div class="mode-desc" id="modeDesc">
+        <strong>Skip Duplicates:</strong> New products added, existing products with same name unchanged.
+      </div>
+      <div class="btn-row"><button class="btn green" onclick="goStep(2)">Next → Choose File</button></div>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div id="step2" style="display:none">
+    <div class="card">
+      <h2>Step 2 — Upload File</h2>
+      <div class="desc">Download the template, fill it in Excel or Google Sheets, then upload.</div>
+      <button class="tmpl-btn" onclick="downloadTemplate()">
+        <span class="ti">📄</span>
+        <div><div>Download Template CSV</div><div style="font-size:12px;color:#9ca3af;margin-top:1px">Correct column headers</div></div>
+        <span style="margin-left:auto;font-size:20px">⬇️</span>
+      </button>
+      <div class="tip">📌 Open template in Excel → fill products → Save As CSV or Excel (.xlsx) → upload below.</div>
+      <div class="or-d">or upload your file directly</div>
+      <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()" ondragover="onDragOver(event)" ondrop="onDrop(event)" ondragleave="onLeave(event)">
+        <span class="di">📂</span>
+        <h3>Tap to Choose File</h3>
+        <p>CSV, Excel (.xlsx, .xls) supported<br>Drag & drop also works</p>
+        <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" onchange="handleFile(event)">
+      </div>
+      <div class="file-info" id="fileInfo"></div>
+      <div class="btn-row">
+        <button class="btn ghost" onclick="goStep(1)">← Back</button>
+        <button class="btn green" id="previewBtn" onclick="goStep(3)" disabled>Preview →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div id="step3" style="display:none">
+    <div class="card">
+      <h2>Step 3 — Review Before Import</h2>
+      <div class="desc">Rows with errors will be skipped. Valid rows will be imported.</div>
+      <div class="summary" id="prevSummary"></div>
+      <div id="modeWarn"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+        <h3 style="font-size:15px;font-weight:800">Data Preview</h3>
+        <span id="prevCount" style="font-size:13px;font-weight:700;padding:4px 12px;border-radius:20px;background:var(--glt);color:var(--g2)"></span>
+      </div>
+      <div class="tbl-wrap"><table id="prevTable"><thead></thead><tbody></tbody></table></div>
+      <div id="errList"></div>
+      <div class="btn-row">
+        <button class="btn ghost" onclick="goStep(2)">← Change File</button>
+        <button class="btn green" id="importBtn" onclick="doImport()">
+          <span id="importTxt">✅ Import Now</span>
+          <div class="spin" id="importSpin"></div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div id="step4" style="display:none">
+    <div id="resultCard"></div>
+    <div class="btn-row">
+      <button class="btn ghost" onclick="resetAll()">Import More</button>
+      <button class="btn green" onclick="goBack()">← Back to App</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const API = window.location.origin + '/api';
+async function authDL(path, filename) {
+  const tok = localStorage.getItem('be_token') || '';
+  try {
+    const r = await fetch(window.location.origin + path, { headers: { 'Authorization': 'Bearer ' + tok } });
+    if (!r.ok) { const e = await r.json().catch(()=>({})); alert('Download failed: '+(e.error||r.status)); return; }
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download=filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  } catch(e) { alert('Download error: '+e.message); }
+}
+
+const params = new URLSearchParams(location.search);
+const adminClientId = params.get('clientId') || null;
+const returnTo = params.get('returnTo') || '/';
+
+// Read token fresh every time it's needed
+const getToken = () => localStorage.getItem('be_token') || '';
+const getME = () => JSON.parse(localStorage.getItem('be_me') || 'null');
+
+// Auth guard
+if (!getToken() || !getME()) { window.location = '/'; }
+
+let importType = params.get('type') === 'sm' ? 'sm' : 'items';
+let importMode = 'skip';
+let parsedRows = [];
+let currentStep = 1;
+
+// Set initial type from URL
+document.getElementById('type-' + importType).classList.add('on');
+document.getElementById('type-' + (importType === 'sm' ? 'items' : 'sm')).classList.remove('on');
+
+function goBack() { window.location.href = returnTo || '/'; }
+
+function setType(t) {
+  importType = t;
+  document.getElementById('type-items').classList.toggle('on', t === 'items');
+  document.getElementById('type-sm').classList.toggle('on', t === 'sm');
+}
+
+function setMode(m) {
+  importMode = m;
+  ['skip','append','overwrite'].forEach(x => document.getElementById('m-'+x).classList.toggle('on', x===m));
+  const descs = {
+    skip: '<strong>Skip Duplicates:</strong> New products added, same-name ones kept as is.',
+    append: '<strong>Add All:</strong> All rows added even if same name already exists.',
+    overwrite: '<strong>Replace All ⚠️:</strong> ALL existing products deleted first, then new ones added. Cannot be undone.',
+  };
+  document.getElementById('modeDesc').innerHTML = descs[m];
+}
+
+function goStep(n) {
+  if (n === 3 && !parsedRows.length) return;
+  currentStep = n;
+  [1,2,3,4].forEach(i => {
+    document.getElementById('step'+i).style.display = i===n ? 'block' : 'none';
+    const num = document.getElementById('sn'+i);
+    const lbl = document.getElementById('sl'+i);
+    const lin = document.getElementById('sl'+i+'l');
+    if (!num) return;
+    if (i < n) { num.className='snum done'; num.textContent='✓'; if(lbl){lbl.className='slbl done';} if(lin)lin.className='sline done'; }
+    else if (i===n) { num.className='snum active'; if(lbl)lbl.className='slbl active'; }
+    else { num.className='snum pending'; if(lbl)lbl.className='slbl pending'; if(lin)lin.className='sline'; }
+  });
+  if (n===3) buildPreview();
+}
+
+/* ── TEMPLATE DOWNLOAD — fetch+blob, no URL token tricks ── */
+async function downloadTemplate() {
+  const path = importType === 'sm' ? '/api/sm/products/template' : '/api/items/template';
+  const filename = importType === 'sm' ? 'billease_supermarket_template.csv' : 'billease_items_template.csv';
+  const fullPath = adminClientId ? path + '?clientId=' + adminClientId : path;
+  try {
+    const r = await fetch(window.location.origin + fullPath, {
+      headers: { 'Authorization': 'Bearer ' + getToken() }
+    });
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      alert('Download failed: ' + (e.error || r.status)); return;
+    }
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  } catch(e) { alert('Download error: ' + e.message); }
+}
+
+/* ── FILE HANDLING ── */
+function onDragOver(e) { e.preventDefault(); document.getElementById('dropzone').classList.add('over'); }
+function onLeave(e) { document.getElementById('dropzone').classList.remove('over'); }
+function onDrop(e) { e.preventDefault(); onLeave(e); const f = e.dataTransfer.files[0]; if (f) processFile(f); }
+function handleFile(e) { const f = e.target.files[0]; if (f) processFile(f); }
+
+function processFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  document.getElementById('fileInfo').style.display = 'block';
+  document.getElementById('fileInfo').textContent = '📎 ' + file.name + ' (' + (file.size/1024).toFixed(1) + ' KB)';
+  document.getElementById('dropzone').querySelector('h3').textContent = file.name;
+  const reader = new FileReader();
+  if (ext === 'csv') {
+    reader.onload = e => {
+      parsedRows = parseCSV(e.target.result);
+      document.getElementById('previewBtn').disabled = parsedRows.length === 0;
+    };
+    reader.readAsText(file);
+  } else if (['xlsx','xls'].includes(ext)) {
+    reader.onload = e => {
+      try {
+        const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        parsedRows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        document.getElementById('previewBtn').disabled = parsedRows.length === 0;
+      } catch(err) { alert('Failed to read Excel file: ' + err.message); }
+    };
+    reader.readAsArrayBuffer(file);
+  } else {
+    alert('Please upload a CSV or Excel file (.csv, .xlsx, .xls)');
+  }
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g,'').trim());
+  return lines.slice(1).filter(l=>l.trim()).map(line => {
+    const vals = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      if (line[i]==='"') { inQ = !inQ; }
+      else if (line[i]===',' && !inQ) { vals.push(cur); cur=''; }
+      else cur += line[i];
+    }
+    vals.push(cur);
+    const obj = {};
+    headers.forEach((h,i) => { obj[h] = (vals[i]||'').replace(/^"|"$/g,'').trim(); });
+    return obj;
+  });
+}
+
+/* ── PREVIEW ── */
+function buildPreview() {
+  const isItems = importType === 'items';
+  const validated = parsedRows.map((row,i) => {
+    const name = (row.name||row.Name||row.ITEM||row.item||'').toString().trim();
+    const price = parseFloat(row.price_per_unit||row.price||row.Price||row.rate||0);
+    const errs = [];
+    if (!name) errs.push('Name required');
+    if (!price||price<=0) errs.push('Price > 0 required');
+    return { row: i+1, name, price, data: row, errs, ok: errs.length===0 };
+  });
+  const okCount = validated.filter(r=>r.ok).length;
+  const errCount = validated.filter(r=>!r.ok).length;
+
+  document.getElementById('prevSummary').innerHTML = `
+    <div class="sbox"><div class="sl">Total</div><div class="sv">${parsedRows.length}</div></div>
+    <div class="sbox"><div class="sl">Valid</div><div class="sv ok">${okCount}</div></div>
+    <div class="sbox"><div class="sl">Errors</div><div class="sv ${errCount?'err':'ok'}">${errCount}</div></div>`;
+  document.getElementById('prevCount').textContent = okCount + ' will be imported';
+
+  const warnEl = document.getElementById('modeWarn');
+  if (importMode==='overwrite') warnEl.innerHTML = '<div class="mode-warn red">⚠️ <strong>Replace All:</strong> All existing products will be permanently deleted first!</div>';
+  else if (importMode==='append') warnEl.innerHTML = '<div class="mode-warn orange">📌 <strong>Add All:</strong> Duplicates will also be added.</div>';
+  else warnEl.innerHTML = '';
+
+  const cols = isItems ? ['status','name','price','category','emoji'] : ['status','name','price_per_unit','unit','item_type','category','brand'];
+  const hdrs = { status:'Status', name:'Name', price:'Price', price_per_unit:'Price/Unit', category:'Category', emoji:'Emoji', unit:'Unit', item_type:'Type', brand:'Brand' };
+  const tbl = document.getElementById('prevTable');
+  tbl.querySelector('thead').innerHTML = `<tr>${cols.map(c=>`<th>${hdrs[c]||c}</th>`).join('')}</tr>`;
+  tbl.querySelector('tbody').innerHTML = validated.slice(0,100).map(v => {
+    const row = v.data;
+    const name = (row.name||row.Name||row.ITEM||'').toString().trim();
+    const price = parseFloat(row.price_per_unit||row.price||row.Price||0);
+    const cells = cols.map(c => {
+      if (c==='status') return `<td><span class="rbadge ${v.ok?'ok':'error'}">${v.ok?'✓ OK':'✕ Error'}</span></td>`;
+      if (c==='name') return `<td>${esc(name)}</td>`;
+      if (c==='price'||c==='price_per_unit') return `<td>${price>0?'₹'+price:`<span style="color:var(--red)">${row.price||row.price_per_unit||'—'}</span>`}</td>`;
+      return `<td>${esc(String(row[c]||''))}</td>`;
+    });
+    return `<tr class="${v.ok?'':'err-row'}">${cells.join('')}</tr>`;
+  }).join('') + (validated.length > 100 ? `<tr><td colspan="${cols.length}" style="text-align:center;color:#9ca3af;padding:12px">...and ${validated.length-100} more rows</td></tr>` : '');
+
+  const errs = validated.filter(r=>!r.ok);
+  document.getElementById('errList').innerHTML = errs.length ? `
+    <div class="err-list"><h4>⚠️ ${errs.length} row${errs.length>1?'s':''} with errors (will be skipped)</h4>
+    <ul>${errs.slice(0,15).map(e=>`<li>Row ${e.row}: ${esc(e.name||'?')} — ${e.errs.join(', ')}</li>`).join('')}</ul>
+    ${errs.length>15?`<div style="margin-top:6px;font-size:12px">...and ${errs.length-15} more</div>`:''}</div>` : '';
+
+  document.getElementById('importBtn').disabled = okCount === 0;
+}
+
+/* ── IMPORT ── */
+async function doImport() {
+  const btn = document.getElementById('importBtn');
+  const txt = document.getElementById('importTxt');
+  const spin = document.getElementById('importSpin');
+  btn.disabled = true; txt.style.display = 'none'; spin.style.display = 'block';
+  try {
+    let endpoint, payload;
+    if (importType === 'items') {
+      endpoint = adminClientId ? `/api/admin/clients/${adminClientId}/items/bulk` : '/api/items/bulk';
+      payload = { items: parsedRows, mode: importMode };
+    } else {
+      endpoint = adminClientId ? `/api/admin/clients/${adminClientId}/sm-products/bulk` : '/api/sm/products/bulk';
+      payload = { products: parsedRows, mode: importMode };
+    }
+    const r = await fetch(API + endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+      body: JSON.stringify(payload),
+    });
+    const d = await r.json();
+    goStep(4);
+    const ok = d.imported > 0;
+    document.getElementById('resultCard').innerHTML = `
+      <div class="result ${ok?'ok':'warn'}">
+        <span class="ri">${ok?'✅':'⚠️'}</span>
+        <h2>${ok?'Import Complete!':'Import Finished'}</h2>
+        <p>${d.message || 'Done'}</p>
+        ${d.errors?.length?`<p style="margin-top:6px;font-size:13px;opacity:.8">${d.errors.length} rows had errors and were skipped.</p>`:''}
+      </div>`;
+  } catch(err) {
+    btn.disabled = false; txt.style.display = ''; spin.style.display = 'none';
+    alert('Import failed: ' + err.message);
+  }
+}
+
+function resetAll() {
+  parsedRows = [];
+  document.getElementById('fileInput').value = '';
+  document.getElementById('fileInfo').style.display = 'none';
+  document.getElementById('dropzone').querySelector('h3').textContent = 'Tap to Choose File';
+  document.getElementById('previewBtn').disabled = true;
+  document.getElementById('importBtn').disabled = false;
+  document.getElementById('importTxt').style.display = '';
+  document.getElementById('importSpin').style.display = 'none';
+  goStep(1);
+}
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+</body>
+</html>

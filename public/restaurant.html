@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#7c2d12">
+<title>BillEase — Restaurant</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
+body{font-family:'Inter',sans-serif;font-size:16px;color:#111;background:#fff7ed;min-height:100vh}
+input,select,button{font-family:inherit;font-size:inherit}
+:root{--r:#9a3412;--r2:#c2410c;--rlt:#ffedd5;--g:#15803d;--glt:#dcfce7;--bdr:#e5e7eb;--t2:#374151;--t3:#9ca3af;--nav:64px;--hdr:56px}
+
+/* ── TOP BAR ── */
+.hdr{background:var(--r);color:#fff;height:var(--hdr);display:flex;align-items:center;justify-content:space-between;padding:0 14px;position:sticky;top:0;z-index:200}
+.hdr-logo{font-size:17px;font-weight:800;display:flex;align-items:center;gap:8px}
+.hdr-logo small{font-size:11px;font-weight:400;opacity:.6;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hdr-r{display:flex;gap:6px;align-items:center}
+.hbtn{background:rgba(255,255,255,.18);border:none;color:#fff;padding:8px 12px;border-radius:18px;font-size:13px;font-weight:700;cursor:pointer;touch-action:manipulation;white-space:nowrap}
+.hbtn:active{background:rgba(255,255,255,.35)}.hbtn-g{background:var(--g)}.hbtn-red{background:#dc2626}
+.av{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800}
+.cdot{background:#dc2626;color:#fff;border-radius:50%;width:20px;height:20px;font-size:10px;font-weight:800;display:none;align-items:center;justify-content:center;margin-left:2px;vertical-align:middle}
+.cdot.show{display:inline-flex}
+
+/* ══ RESPONSIVE STRATEGY ══
+   Mobile (<=768px): single column bill, bottom nav, sheets
+   Desktop (>=769px): 3-column layout
+*/
+
+/* ── MOBILE BILL VIEW ── */
+/* Shown on mobile, hidden on desktop */
+.mob-view{display:block;padding-bottom:calc(var(--nav) + 16px)}
+
+/* ── DESKTOP 3-COLUMN ── */
+/* Hidden on mobile, shown on desktop */
+.desk-wrap{display:none;height:calc(100vh - var(--hdr));overflow:hidden}
+.desk-left{width:300px;min-width:260px;background:#fff;border-right:2px solid var(--bdr);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.desk-center{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.desk-right{width:290px;min-width:260px;background:#fff;border-left:2px solid var(--bdr);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+
+/* ── BOTTOM NAV — hidden by default, shown on mobile ── */
+.botnav{display:none;position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:2px solid var(--bdr);height:var(--nav);z-index:200}
+.bnrow{display:flex;height:100%}
+.bnb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:transparent;cursor:pointer;color:var(--t3);font-size:11px;font-weight:700;touch-action:manipulation;padding:7px 2px;transition:.15s;position:relative}
+.bnb .ni{font-size:24px;line-height:1}
+.bnb.on{color:var(--r2)}.bnb.on .ni{transform:scale(1.1)}
+
+/* responsive show/hide */
+@media(max-width:768px){
+  .mob-view{display:block !important}
+  .desk-wrap{display:none !important}
+  .botnav{display:flex !important}
+}
+@media(min-width:769px){
+  .mob-view{display:none !important}
+  .desk-wrap{display:flex !important}
+  .botnav{display:none !important}
+}
+
+/* ── SHARED: customer bar ── */
+.cust-bar{background:#fff;border-bottom:2px solid var(--bdr);padding:10px 14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.bill-chip{background:var(--rlt);color:var(--r);font-size:13px;font-weight:800;padding:7px 14px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.cinp{display:flex;align-items:center;gap:6px;flex:1;min-width:130px;background:#f9fafb;border:2px solid var(--bdr);border-radius:10px;padding:9px 12px}
+.cinp span{font-size:17px;flex-shrink:0}
+.cinp input{flex:1;border:none;outline:none;font-size:15px;font-weight:500;background:transparent;min-width:0;-webkit-appearance:none}
+.cinp input::placeholder{color:var(--t3);font-weight:400}
+
+/* ── SHARED: order items ── */
+.cart-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.cart-empty{padding:40px 24px;text-align:center}
+.ei{font-size:64px;display:block;margin-bottom:14px;opacity:.35}
+.cart-empty h3{font-size:18px;font-weight:800;color:var(--t2);margin-bottom:8px}
+.cart-empty p{font-size:14px;color:var(--t3);line-height:1.6;margin-bottom:18px}
+.tap-hint{display:inline-block;background:var(--rlt);color:var(--r2);border:2px dashed #fed7aa;border-radius:12px;padding:14px 20px;font-size:14px;font-weight:700;line-height:1.5}
+.order-row{display:flex;align-items:center;gap:12px;padding:13px 14px;background:#fff;border-bottom:1px solid #f3f4f6}
+.or-em{font-size:28px;flex-shrink:0;width:38px;text-align:center}
+.or-info{flex:1;min-width:0}
+.or-name{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.or-cat{font-size:12px;color:var(--t3)}
+.or-unit{font-size:13px;color:var(--r2);font-weight:600;margin-top:2px}
+.or-ctrl{display:flex;align-items:center;border:2px solid var(--bdr);border-radius:12px;overflow:hidden;flex-shrink:0}
+.or-ctrl button{width:40px;height:40px;border:none;background:#f9fafb;font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--r2);touch-action:manipulation}
+.or-ctrl button:active{background:var(--rlt)}
+.or-ctrl span{min-width:36px;text-align:center;font-size:17px;font-weight:800;background:#fff}
+.or-price{font-size:16px;font-weight:800;color:var(--r);min-width:70px;text-align:right;flex-shrink:0}
+.or-del{background:none;border:none;color:#d1d5db;font-size:20px;cursor:pointer;padding:4px 6px;touch-action:manipulation}
+.or-del:active{color:#dc2626}
+
+/* ── SHARED: totals + payment ── */
+.bill-totals{background:#fff;border-top:2px solid var(--bdr);padding:14px 16px 0}
+.trow{display:flex;justify-content:space-between;font-size:15px;color:var(--t2);padding:4px 0}
+.trow.disc span:last-child{color:#dc2626;font-weight:700}
+.trow.grand{font-size:22px;font-weight:800;color:#111;padding-top:12px;border-top:2px solid var(--bdr);margin-top:8px}
+.trow.grand span:last-child{color:var(--r)}
+.pay-row{background:#fff;padding:12px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-top:1px solid #f3f4f6}
+.disc-inp{width:88px;border:2px solid var(--bdr);border-radius:10px;padding:11px;font-size:16px;font-weight:700;text-align:center;outline:none;-webkit-appearance:none;background:#f9fafb}
+.disc-inp:focus{border-color:var(--r2);background:#fff}
+.disc-sel{border:2px solid var(--bdr);border-radius:10px;padding:11px;font-size:15px;font-weight:600;outline:none;-webkit-appearance:none;background:#fff;cursor:pointer}
+.pay-sel{border:2px solid var(--bdr);border-radius:10px;padding:11px 14px;font-size:15px;font-weight:600;outline:none;-webkit-appearance:none;background:#fff;flex:1;min-width:130px;cursor:pointer}
+.bill-btns{display:flex;gap:8px;padding:10px 14px 14px;background:#fff}
+.bact{flex:1;padding:15px 6px;border:none;border-radius:12px;font-size:14px;font-weight:800;cursor:pointer;touch-action:manipulation;display:flex;align-items:center;justify-content:center;gap:5px}
+.bact:active{transform:scale(.97)}
+.bact-clr{background:#fee2e2;color:#dc2626;flex:.6}
+.bact-hld{background:#f3f4f6;color:var(--t2);border:2px solid var(--bdr);flex:.8}
+.bact-prt{background:#dbeafe;color:#1d4ed8;border:2px solid #bfdbfe;flex:.8}
+.bact-sav{background:var(--g);color:#fff;flex:1.5}
+
+/* ── CATALOG ── */
+.srch-bar{padding:10px 12px;border-bottom:1px solid var(--bdr);display:flex;gap:6px;align-items:center}
+.srch-bar input{flex:1;padding:11px 14px;border:2px solid var(--bdr);border-radius:12px;font-size:15px;outline:none;background:#f9fafb;-webkit-appearance:none}
+.srch-bar input:focus{border-color:var(--r2);background:#fff}
+.cats-strip{display:flex;gap:6px;padding:8px 12px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--bdr);flex-shrink:0}
+.cats-strip::-webkit-scrollbar{display:none}
+.cat-btn{white-space:nowrap;padding:8px 16px;border-radius:20px;border:2px solid var(--bdr);font-size:13.5px;font-weight:600;cursor:pointer;background:#fff;color:var(--t2);touch-action:manipulation}
+.cat-btn.on{background:var(--r2);border-color:var(--r2);color:#fff}
+/* Desktop: 2-col grid */
+.items-grid{padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:start;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
+.icard{background:#f9fafb;border:2px solid var(--bdr);border-radius:12px;padding:11px 10px;cursor:pointer;touch-action:manipulation;transition:.15s;position:relative;display:flex;flex-direction:column;min-height:82px}
+.icard:active,.icard:hover{background:var(--rlt);border-color:var(--r2)}
+.icard .ie{font-size:22px;margin-bottom:4px}.icard .in{font-size:12.5px;font-weight:700;flex:1;line-height:1.3}
+.icard .ip{font-size:12px;color:var(--r2);font-weight:800;margin-top:4px}
+.ic-badge{position:absolute;top:-6px;right:-6px;background:var(--r2);color:#fff;border-radius:50%;width:20px;height:20px;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid #fff}
+/* Mobile sheet: big rows */
+.items-list{flex:1;overflow-y:auto;padding:10px 14px;-webkit-overflow-scrolling:touch}
+.irow{display:flex;align-items:center;gap:14px;padding:16px 14px;background:#fff;border:2px solid var(--bdr);border-radius:12px;margin-bottom:10px;cursor:pointer;touch-action:manipulation;transition:.15s;position:relative}
+.irow:active{background:var(--rlt);border-color:var(--r2)}.irow.inc{border-color:var(--r2)}
+.irow .ie{font-size:32px;flex-shrink:0;width:40px;text-align:center}
+.irow .ii{flex:1;min-width:0}
+.irow .in{font-size:16px;font-weight:800;margin-bottom:2px}
+.irow .ic{font-size:12.5px;color:var(--t3)}
+.irow .ip{font-size:15px;color:var(--r2);font-weight:800;margin-top:3px}
+.ir-badge{position:absolute;top:-8px;right:-8px;background:var(--r2);color:#fff;border-radius:50%;width:24px;height:24px;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid #fff}
+.iadd{background:var(--r2);border:none;color:#fff;width:44px;height:44px;border-radius:50%;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;touch-action:manipulation;box-shadow:0 2px 8px rgba(194,65,12,.3)}
+.iadd:active{background:var(--r);transform:scale(.95)}
+
+/* ── RIGHT PANEL (desktop) ── */
+.rpt-tabs{display:flex;border-bottom:2px solid var(--bdr);flex-shrink:0}
+.rpt{flex:1;padding:13px 6px;text-align:center;font-size:13px;font-weight:700;color:var(--t3);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+.rpt.on{color:var(--r2);border-bottom-color:var(--r2)}
+.rpanel-body{flex:1;overflow-y:auto;padding:16px;-webkit-overflow-scrolling:touch}
+/* Settings */
+.sg{margin-bottom:18px}.sg-ttl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:10px}
+.srow{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f3f4f6;font-size:15px;gap:8px}
+.srow:last-child{border-bottom:none}
+.sinp{border:2px solid var(--bdr);border-radius:10px;padding:10px 12px;font-size:14px;font-weight:600;width:160px;outline:none;-webkit-appearance:none}
+.sinp:focus{border-color:var(--r2)}
+.stog{width:52px;height:30px;background:#d1d5db;border-radius:15px;position:relative;cursor:pointer;border:none;flex-shrink:0;transition:.25s}
+.stog.on{background:var(--g)}.stog::after{content:'';position:absolute;top:3px;left:3px;width:24px;height:24px;background:#fff;border-radius:50%;transition:.25s;box-shadow:0 1px 4px rgba(0,0,0,.2)}.stog.on::after{left:25px}
+/* History */
+.hcard{background:#fff;border:2px solid var(--bdr);border-radius:12px;padding:14px;margin-bottom:9px}
+.hc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.hc-no{font-size:13px;font-weight:800;color:var(--r2)}.hc-amt{font-size:18px;font-weight:800}
+.hc-meta{font-size:13px;color:var(--t3);line-height:1.5}
+.hc-btns{display:flex;gap:7px;margin-top:10px}
+.hcbtn{padding:9px 15px;border-radius:10px;border:none;font-size:13.5px;font-weight:700;cursor:pointer;touch-action:manipulation}
+.hcbtn-v{background:var(--rlt);color:var(--r)}.hcbtn-d{background:#fee2e2;color:#dc2626}.hcbtn:active{opacity:.75}
+/* Reports */
+.rep-f{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;align-items:center}
+.rep-f select,.rep-f input{border:2px solid var(--bdr);border-radius:10px;padding:10px 12px;font-size:14px;font-weight:600;outline:none;-webkit-appearance:none;background:#fff}
+.rep-go{padding:11px 18px;border:none;border-radius:10px;background:var(--r2);color:#fff;font-size:14px;font-weight:700;cursor:pointer;touch-action:manipulation}
+.kpig{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px}
+.kpic{background:#f9fafb;border:2px solid var(--bdr);border-radius:12px;padding:13px;text-align:center}
+.kpic .kl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:3px}
+.kpic .kv{font-size:20px;font-weight:800}
+.kv-g{color:var(--g)}.kv-gold{color:#d97706}
+.ritem{display:flex;justify-content:space-between;align-items:center;padding:11px 13px;background:#f9fafb;border:1.5px solid var(--bdr);border-radius:10px;margin-bottom:7px;font-size:14px;font-weight:600}
+.rbar{height:4px;background:var(--rlt);border-radius:3px;margin-top:4px}
+.rbar-f{height:100%;background:var(--r2);border-radius:3px;transition:.5s}
+.trend{background:#f9fafb;border:2px solid var(--bdr);border-radius:12px;padding:10px;height:110px;display:flex;align-items:flex-end;gap:4px;margin-bottom:14px}
+.tc{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px}
+.tb{width:100%;background:var(--r2);border-radius:3px 3px 0 0;min-height:3px;transition:.5s}
+.tl{font-size:8px;color:var(--t3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;text-align:center}
+
+/* ── OVERLAYS / SHEETS ── */
+.sheet-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+.sheet-ov.on{display:block}
+.menu-sheet{position:fixed;left:0;right:0;bottom:0;background:#fff;border-radius:24px 24px 0 0;z-index:301;display:flex;flex-direction:column;height:90vh;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,0,.67,0)}
+.menu-sheet.open{transform:translateY(0)}
+.drag-h{width:44px;height:5px;background:#e5e7eb;border-radius:3px;margin:12px auto 0;flex-shrink:0}
+.sheet-hdr{padding:12px 16px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bdr);flex-shrink:0}
+.sheet-hdr h3{font-size:18px;font-weight:800}
+.sheet-hdr-r{display:flex;gap:8px;align-items:center}
+.close-btn{background:#f3f4f6;border:none;width:34px;height:34px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t2)}
+.rdrawer-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+.rdrawer-ov.on{display:block}
+.rdrawer{position:fixed;top:0;right:0;bottom:0;width:90vw;max-width:380px;background:#fff;z-index:301;transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden}
+.rdrawer.open{transform:translateX(0)}
+
+/* ── MODALS ── */
+.mbg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;align-items:flex-end;justify-content:center;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+.mbg.on{display:flex}
+.mbox{background:#fff;border-radius:24px 24px 0 0;padding:22px 20px 40px;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.mdrag{width:44px;height:5px;background:#e5e7eb;border-radius:3px;margin:0 auto 18px}
+.mbox h2{font-size:20px;font-weight:800;margin-bottom:16px}
+.mbtns{display:flex;gap:9px;margin-top:16px}
+.mbtn{flex:1;padding:16px;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;touch-action:manipulation}
+.mbtn:active{transform:scale(.98)}.mbtn-c{background:#f3f4f6;color:var(--t2)}.mbtn-g{background:var(--g);color:#fff}
+.receipt{font-family:'Courier New',monospace;font-size:12.5px;background:#fffef7;border:2px solid var(--bdr);border-radius:12px;padding:16px;white-space:pre;line-height:1.7;overflow-x:auto}
+.mng-row{display:flex;align-items:center;gap:10px;padding:11px 12px;background:#f9fafb;border:2px solid var(--bdr);border-radius:10px;margin-bottom:7px}
+.mr-em{font-size:22px;flex-shrink:0}.mr-nm{flex:1;font-size:14px;font-weight:700}.mr-pr{font-size:13px;color:var(--g);font-weight:700;min-width:55px;text-align:right}.mr-cat{font-size:11.5px;background:#e5e7eb;color:#6b7280;padding:2px 8px;border-radius:7px;white-space:nowrap}
+.addrow{display:flex;flex-wrap:wrap;gap:7px;padding-top:12px;border-top:2px solid #f3f4f6}
+.addrow input,.addrow select{flex:1;min-width:80px;border:2px solid var(--bdr);border-radius:10px;padding:10px;font-size:14px;outline:none;-webkit-appearance:none;background:#f9fafb}
+.addrow input:focus,.addrow select:focus{border-color:var(--r2);background:#fff}
+.editform{display:flex;flex-wrap:wrap;gap:8px}
+.editform input,.editform select{flex:1;min-width:90px;border:2px solid var(--bdr);border-radius:10px;padding:12px 10px;font-size:15px;outline:none;-webkit-appearance:none;background:#f9fafb}
+.editform input:focus,.editform select:focus{border-color:var(--r2);background:#fff}
+
+/* TOAST */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:12px 22px;border-radius:24px;font-size:14px;font-weight:700;z-index:999;pointer-events:none;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+
+@media(min-width:641px){
+  .mbg{align-items:center;padding:20px}
+  .mbox{border-radius:16px;padding:28px;max-height:88vh}
+  .mdrag{display:none}
+}
+@media(max-width:420px){
+  .bact{font-size:12.5px;padding:13px 4px}
+  .kpig{gap:7px}
+}
+@media print{
+  .hdr,.botnav,.desk-left,.desk-right,.cust-bar,.pay-row,.bill-btns{display:none !important}
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="hdr">
+  <div class="hdr-logo">🍽️ Restaurant <small id="biz-nm">Billing</small></div>
+  <div class="hdr-r">
+    <div class="av" id="av-el">R</div>
+    <button class="hbtn" onclick="window.location.href='/'">🏠 Home</button>
+    <button class="hbtn hbtn-g" onclick="saveBill()">✅ Save</button>
+    <button class="hbtn hbtn-red" onclick="logout()">Exit</button>
+  </div>
+</div>
+
+<!-- ══ DESKTOP 3-COLUMN (>=769px) ══ -->
+<div class="desk-wrap">
+  <!-- Left: Menu catalog -->
+  <div class="desk-left">
+    <div class="srch-bar"><input id="d-srch" placeholder="🔍 Search menu…" oninput="renderDesk()"></div>
+    <div class="cats-strip" id="d-cats"></div>
+    <div class="items-grid" id="d-items"></div>
+  </div>
+  <!-- Center: Bill -->
+  <div class="desk-center">
+    <div class="cust-bar">
+      <span class="bill-chip" id="d-no">Bill #001</span>
+      <div class="cinp"><span>👤</span><input id="d-cust" placeholder="Customer name" autocomplete="off"></div>
+      <div class="cinp" style="flex:0;min-width:0"><span>🪑</span><input id="d-tbl" placeholder="Table" style="width:80px" autocomplete="off"></div>
+    </div>
+    <div class="cart-scroll" id="d-order">
+      <div class="cart-empty"><span class="ei">🍽️</span><h3>No items yet</h3><p>Click any item on the left</p></div>
+    </div>
+    <div id="d-tots" style="display:none">
+      <div class="bill-totals">
+        <div class="trow"><span>Subtotal</span><span id="d-sub">₹0.00</span></div>
+        <div class="trow disc" id="d-drow" style="display:none"><span>Discount</span><span id="d-disc"></span></div>
+        <div class="trow" id="d-trow"><span>Tax (<span id="d-tpct">0</span>%)</span><span id="d-tax">₹0.00</span></div>
+        <div class="trow grand"><span>Grand Total</span><span id="d-grand">₹0.00</span></div>
+      </div>
+      <div class="pay-row">
+        <label style="font-size:13px;font-weight:700;color:var(--t3);white-space:nowrap">Disc:</label>
+        <input class="disc-inp" type="number" id="d-dval" placeholder="0" inputmode="decimal" oninput="calc()">
+        <select class="disc-sel" id="d-dtype" onchange="calc()"><option value="flat">₹</option><option value="pct">%</option></select>
+        <select class="pay-sel" id="d-pay"><option>💵 Cash</option><option>💳 Card</option><option>📱 UPI</option><option>🌐 Online</option><option>✂️ Split</option></select>
+      </div>
+    </div>
+    <div class="bill-btns">
+      <button class="bact bact-clr" onclick="clearBill()">🗑 Clear</button>
+      <button class="bact bact-hld" onclick="holdBill()">📌 Hold</button>
+      <button class="bact bact-prt" onclick="showReceipt()">🖨 Print</button>
+      <button class="bact bact-sav" onclick="saveBill()">✅ Save Bill</button>
+    </div>
+  </div>
+  <!-- Right: Panel -->
+  <div class="desk-right">
+    <div class="rpt-tabs">
+      <div class="rpt on" id="drt-s" onclick="drTab('s')">⚙️ Settings</div>
+      <div class="rpt" id="drt-h" onclick="drTab('h')">📋 History</div>
+      <div class="rpt" id="drt-r" onclick="drTab('r')">📊 Reports</div>
+    </div>
+    <div class="rpanel-body" id="drp-body"></div>
+  </div>
+</div>
+
+<!-- ══ MOBILE BILL VIEW (<=768px) ══ -->
+<div class="mob-view">
+  <div class="cust-bar">
+    <span class="bill-chip" id="m-no">Bill #001</span>
+    <div class="cinp"><span>👤</span><input id="m-cust" placeholder="Customer name" autocomplete="off"></div>
+  </div>
+  <div id="m-order">
+    <div class="cart-empty"><span class="ei">🍽️</span><h3>No items yet</h3><p>Tap the Menu button below to add items</p><div class="tap-hint">👇 Tap "Menu" to start</div></div>
+  </div>
+  <div id="m-tots" style="display:none">
+    <div class="bill-totals">
+      <div class="trow"><span>Subtotal</span><span id="m-sub">₹0.00</span></div>
+      <div class="trow disc" id="m-drow" style="display:none"><span>Discount</span><span id="m-disc"></span></div>
+      <div class="trow" id="m-trow"><span>Tax (<span id="m-tpct">0</span>%)</span><span id="m-tax">₹0.00</span></div>
+      <div class="trow grand"><span>Grand Total</span><span id="m-grand">₹0.00</span></div>
+    </div>
+    <div class="pay-row">
+      <label style="font-size:13px;font-weight:700;color:var(--t3);white-space:nowrap">Disc:</label>
+      <input class="disc-inp" type="number" id="m-dval" placeholder="0" inputmode="decimal" oninput="calc()">
+      <select class="disc-sel" id="m-dtype" onchange="calc()"><option value="flat">₹</option><option value="pct">%</option></select>
+      <select class="pay-sel" id="m-pay"><option>💵 Cash</option><option>💳 Card</option><option>📱 UPI</option><option>🌐 Online</option><option>✂️ Split</option></select>
+    </div>
+  </div>
+  <div class="bill-btns">
+    <button class="bact bact-clr" onclick="clearBill()">🗑</button>
+    <button class="bact bact-hld" onclick="holdBill()">📌 Hold</button>
+    <button class="bact bact-prt" onclick="showReceipt()">🖨</button>
+    <button class="bact bact-sav" onclick="saveBill()">✅ Save Bill</button>
+  </div>
+  <div style="height:80px"></div>
+</div>
+
+<!-- MOBILE BOTTOM NAV -->
+<div class="botnav">
+  <div class="bnrow">
+    <button class="bnb" id="nb-menu" onclick="openMenu()">
+      <span class="ni">🍽️</span>Menu
+      <span class="cdot" id="cdot">0</span>
+    </button>
+    <button class="bnb on" id="nb-bill" onclick="closeAll()"><span class="ni">🧾</span>Bill</button>
+    <button class="bnb" id="nb-set" onclick="openRD('s')"><span class="ni">⚙️</span>Settings</button>
+    <button class="bnb" id="nb-hist" onclick="openRD('h')"><span class="ni">📋</span>History</button>
+    <button class="bnb" id="nb-rep" onclick="openRD('r')"><span class="ni">📊</span>Reports</button>
+  </div>
+</div>
+
+<!-- Overlays -->
+<div class="sheet-ov" id="sheet-ov" onclick="closeAll()"></div>
+<div class="rdrawer-ov" id="rd-ov" onclick="closeAll()"></div>
+
+<!-- Menu Sheet (mobile) -->
+<div class="menu-sheet" id="menu-sheet">
+  <div class="drag-h"></div>
+  <div class="sheet-hdr">
+    <h3>🍽️ Menu</h3>
+    <div class="sheet-hdr-r">
+      <button class="hbtn" style="background:var(--r2);font-size:12px;padding:7px 12px" onclick="openManage()">⚙️ Manage</button>
+      <button class="close-btn" onclick="closeAll()">✕</button>
+    </div>
+  </div>
+  <div class="srch-bar"><input id="m-srch" placeholder="🔍 Search menu…" oninput="renderMob()"></div>
+  <div class="cats-strip" id="m-cats"></div>
+  <div class="items-list" id="m-items"></div>
+  <div style="height:20px;flex-shrink:0"></div>
+</div>
+
+<!-- Right Drawer (mobile) -->
+<div class="rdrawer" id="rdrawer">
+  <div class="rpt-tabs">
+    <div class="rpt on" id="mrt-s" onclick="mrTab('s')">⚙️ Settings</div>
+    <div class="rpt" id="mrt-h" onclick="mrTab('h')">📋 History</div>
+    <div class="rpt" id="mrt-r" onclick="mrTab('r')">📊 Reports</div>
+  </div>
+  <div class="rpanel-body" id="mrp-body"></div>
+</div>
+
+<!-- Receipt Modal -->
+<div class="mbg" id="rcpt-modal">
+  <div class="mbox">
+    <div class="mdrag"></div>
+    <h2>🧾 Receipt</h2>
+    <div class="receipt" id="rcpt-txt"></div>
+    <div class="mbtns">
+      <button class="mbtn mbtn-c" onclick="closeM('rcpt-modal')">Close</button>
+      <button class="mbtn mbtn-g" onclick="window.print()">🖨 Print</button>
+    </div>
+  </div>
+</div>
+
+<!-- Manage Items Modal -->
+<div class="mbg" id="mng-modal">
+  <div class="mbox" style="max-width:520px">
+    <div class="mdrag"></div>
+    <h2>🍽️ Manage Menu Items</h2>
+    <div id="mng-list" style="max-height:300px;overflow-y:auto;margin-bottom:4px"></div>
+    <div class="addrow">
+      <input id="n-em" placeholder="🍛" style="max-width:52px;text-align:center;font-size:20px">
+      <input id="n-nm" placeholder="Item name" style="min-width:110px">
+      <input id="n-pr" type="number" placeholder="₹ Price" inputmode="decimal" style="max-width:90px;-webkit-appearance:none">
+      <select id="n-cat" style="max-width:110px"><option>Food</option><option>Drink</option><option>Starter</option><option>Main</option><option>Dessert</option><option>Other</option></select>
+      <button onclick="addItem()" style="background:var(--g);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;flex:0">+ Add</button>
+    </div>
+    <div class="mbtns">
+      <button class="mbtn mbtn-c" onclick="closeM('mng-modal')">Done</button>
+      <button class="mbtn" style="background:#1d4ed8;color:#fff;flex:.8" onclick="goImport()">📥 Import</button>
+      <button class="mbtn" style="background:#374151;color:#fff;flex:.7" onclick="authDL('/api/items/export','items_export.csv')">📤 Export</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Item Modal -->
+<div class="mbg" id="edit-modal">
+  <div class="mbox">
+    <div class="mdrag"></div>
+    <h2>✏️ Edit Item</h2>
+    <div id="edit-form" class="editform" style="margin-bottom:4px"></div>
+    <div class="mbtns">
+      <button class="mbtn mbtn-c" onclick="closeM('edit-modal')">Cancel</button>
+      <button class="mbtn mbtn-g" onclick="saveEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = window.location.origin + '/api';
+let TOKEN = localStorage.getItem('be_token') || '';
+let ME = JSON.parse(localStorage.getItem('be_me') || 'null');
+let S={}, items=[], cart=[], aCat='All', editId=null, drt='s', mrt='s';
+const isMob = () => window.innerWidth <= 768;
+
+if (!TOKEN || !ME || ME.role === 'admin') window.location.href = '/';
+
+/* ════ AUTH DOWNLOAD ════ */
+async function authDL(path, filename) {
+  const tok = localStorage.getItem('be_token') || '';
+  try {
+    const r = await fetch(window.location.origin + path, { headers: { 'Authorization': 'Bearer ' + tok } });
+    if (!r.ok) { const e = await r.json().catch(()=>({})); alert('Download failed: '+(e.error||r.status)); return; }
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download=filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  } catch(e) { alert('Download error: '+e.message); }
+}
+
+async function api(m,p,b){
+  const r=await fetch(API+p,{method:m,headers:{'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('be_token')||'')},body:b?JSON.stringify(b):undefined});
+  if(r.status===401){logout();return null;}
+  return r.json();
+}
+function logout(){localStorage.removeItem('be_token');localStorage.removeItem('be_me');window.location.href='/';}
+function setText(id,v){const el=document.getElementById(id);if(el)el.textContent=v;}
+function closeM(id){document.getElementById(id).classList.remove('on');}
+document.querySelectorAll('.mbg').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('on');}));
+function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2500);}
+
+async function init(){
+  S=await api('GET','/settings')||{}; normS();
+  items=await api('GET','/items')||[];
+  setText('biz-nm',S.bizName||S.biz_name||'My Restaurant');
+  setText('av-el',(ME.name||'R')[0].toUpperCase());
+  updateBillNo(); renderCats(); renderDesk(); renderMob();
+  if(!isMob()) drTab('s');
+}
+function normS(){const m={bizName:'biz_name',bizPhone:'biz_phone',taxEnabled:'tax_enabled',taxRate:'tax_rate',taxName:'tax_name',thankYou:'thank_you',billPrefix:'bill_prefix'};Object.entries(m).forEach(([c,s])=>{if(S[c]===undefined&&S[s]!==undefined)S[c]=S[s];});}
+async function updateBillNo(){
+  const bills=await api('GET','/bills')||[];
+  const no='Bill #'+String((bills.length||0)+1).padStart(3,'0');
+  setText('d-no',no); setText('m-no',no);
+}
+
+/* CATALOG */
+function renderCats(){
+  const cats=['All',...new Set(items.map(i=>i.cat))];
+  const mk=()=>cats.map(c=>`<button class="cat-btn ${c===aCat?'on':''}" onclick="setCat('${c}')">${c}</button>`).join('');
+  ['d-cats','m-cats'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=mk();});
+}
+function setCat(c){aCat=c;renderCats();renderDesk();renderMob();}
+
+function renderDesk(){
+  const q=(document.getElementById('d-srch')?.value||'').toLowerCase();
+  const list=items.filter(i=>(aCat==='All'||i.cat===aCat)&&(!q||i.name.toLowerCase().includes(q)));
+  const g=document.getElementById('d-items');if(!g)return;
+  if(!list.length){g.innerHTML='<div style="padding:20px;text-align:center;color:var(--t3);grid-column:1/-1">No items</div>';return;}
+  g.innerHTML=list.map(it=>{
+    const qty=cart.find(c=>c.id===it.id)?.qty||0;
+    return `<div class="icard ${qty?'':''}" onclick="addToCart(${it.id})" style="${qty?'border-color:var(--r2);background:var(--rlt)':''}">
+      ${qty?`<div class="ic-badge">${qty}</div>`:''}
+      <div class="ie">${it.emoji}</div>
+      <div class="in">${it.name}</div>
+      <div class="ip">₹${it.price}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderMob(){
+  const q=(document.getElementById('m-srch')?.value||'').toLowerCase();
+  const list=items.filter(i=>(aCat==='All'||i.cat===aCat)&&(!q||i.name.toLowerCase().includes(q)));
+  const g=document.getElementById('m-items');if(!g)return;
+  if(!list.length){g.innerHTML='<div style="padding:28px;text-align:center;color:var(--t3);font-size:15px">No items</div>';return;}
+  g.innerHTML=list.map(it=>{
+    const qty=cart.find(c=>c.id===it.id)?.qty||0;
+    return `<div class="irow ${qty?'inc':''}" onclick="addToCart(${it.id})">
+      ${qty?`<div class="ir-badge">${qty}</div>`:''}
+      <div class="ie">${it.emoji}</div>
+      <div class="ii"><div class="in">${it.name}</div><div class="ic">${it.cat}</div><div class="ip">₹${it.price}</div></div>
+      <button class="iadd" onclick="event.stopPropagation();addToCart(${it.id})">+</button>
+    </div>`;
+  }).join('');
+}
+
+/* CART */
+function addToCart(id){
+  const it=items.find(i=>i.id===id);if(!it)return;
+  const ci=cart.find(c=>c.id===id);
+  if(ci)ci.qty++;else cart.push({...it,qty:1});
+  renderOrder();renderDesk();renderMob();calc();updateDot();
+  try{navigator.vibrate&&navigator.vibrate(15);}catch{}
+}
+function chgQty(id,d){
+  const ci=cart.find(c=>c.id===id);if(!ci)return;
+  ci.qty+=d;if(ci.qty<=0)cart=cart.filter(c=>c.id!==id);
+  renderOrder();renderDesk();renderMob();calc();updateDot();
+}
+function delItem2(id){cart=cart.filter(c=>c.id!==id);renderOrder();renderDesk();renderMob();calc();updateDot();}
+function updateDot(){
+  const n=cart.reduce((s,c)=>s+c.qty,0);
+  const el=document.getElementById('cdot');if(el){el.textContent=n;el.classList.toggle('show',n>0);}
+}
+
+function renderOrder(){
+  const cur=S.currency||'₹';
+  const emM=`<div class="cart-empty"><span class="ei">🍽️</span><h3>No items yet</h3><p>Tap Menu to add items</p><div class="tap-hint">👇 Tap "Menu" below</div></div>`;
+  const emD=`<div class="cart-empty"><span class="ei">🍽️</span><h3>No items yet</h3><p>Click any menu item on the left</p></div>`;
+  ['d','m'].forEach(p=>{
+    const wrap=document.getElementById(p+'-order');
+    const tots=document.getElementById(p+'-tots');
+    if(!wrap)return;
+    if(!cart.length){wrap.innerHTML=p==='d'?emD:emM;if(tots)tots.style.display='none';return;}
+    if(tots)tots.style.display='block';
+    wrap.innerHTML=cart.map(c=>`
+      <div class="order-row">
+        <div class="or-em">${c.emoji}</div>
+        <div class="or-info">
+          <div class="or-name">${c.name}</div>
+          <div class="or-cat">${c.cat}</div>
+          <div class="or-unit">${cur}${c.price} each</div>
+        </div>
+        <div class="or-ctrl">
+          <button onclick="chgQty(${c.id},-1)">−</button>
+          <span>${c.qty}</span>
+          <button onclick="chgQty(${c.id},1)">+</button>
+        </div>
+        <div class="or-price">${cur}${(c.price*c.qty).toFixed(2)}</div>
+        <button class="or-del" onclick="delItem2(${c.id})">✕</button>
+      </div>`).join('');
+  });
+}
+
+function getDiscPay(){
+  const sfx=isMob()?'m':'d';
+  return{dv:parseFloat(document.getElementById(sfx+'-dval')?.value)||0,dt:document.getElementById(sfx+'-dtype')?.value||'flat',pay:(document.getElementById(sfx+'-pay')?.value||'Cash').replace(/[^\w\s]/g,'').trim()};
+}
+function calc(){
+  const cur=S.currency||'₹', sub=cart.reduce((s,c)=>s+c.price*c.qty,0);
+  const{dv,dt}=getDiscPay();
+  let disc=dt==='pct'?sub*(dv/100):dv;disc=Math.min(disc,sub);
+  const taxOn=S.taxEnabled!==undefined?S.taxEnabled:(S.tax_enabled!==undefined?S.tax_enabled:true);
+  const taxRt=S.taxRate||S.tax_rate||0;
+  const tax=taxOn?(sub-disc)*(taxRt/100):0;
+  const grand=sub-disc+tax;
+  ['d','m'].forEach(p=>{
+    const set=(id,v)=>{const el=document.getElementById(p+'-'+id);if(el)el.textContent=v;};
+    set('sub',cur+sub.toFixed(2));
+    const de=document.getElementById(p+'-disc');if(de)de.textContent='-'+cur+disc.toFixed(2);
+    const dr=document.getElementById(p+'-drow');if(dr)dr.style.display=disc>0?'':'none';
+    set('tpct',taxOn?taxRt:0);
+    set('tax',cur+tax.toFixed(2));
+    const tr=document.getElementById(p+'-trow');if(tr)tr.style.display=taxOn?'':'none';
+    set('grand',cur+grand.toFixed(2));
+  });
+}
+function getCust(){return document.getElementById('m-cust')?.value||document.getElementById('d-cust')?.value||'Guest';}
+function getTable(){return document.getElementById('d-tbl')?.value||'';}
+
+function clearBill(){
+  if(!cart.length)return;if(!confirm('Clear all items?'))return;
+  cart=[];
+  ['d-dval','m-dval','d-cust','m-cust','d-tbl'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  renderOrder();renderDesk();renderMob();calc();updateDot();
+}
+async function holdBill(){if(!cart.length)return;await api('POST','/held',{customer:getCust(),table:getTable(),cart:[...cart]});toast('📌 Bill held');}
+async function saveBill(){
+  if(!cart.length){alert('Add items first');return;}
+  const{dv,dt,pay}=getDiscPay();
+  const sub=cart.reduce((s,c)=>s+c.price*c.qty,0);
+  let disc=dt==='pct'?sub*(dv/100):dv;disc=Math.min(disc,sub);
+  const res=await api('POST','/bills',{cart,customer:getCust(),phone:'',table:getTable(),payMode:pay,disc,discType:dt,discVal:dv});
+  if(res?.success){
+    toast(`✅ Bill #${String(res.bill.no).padStart(3,'0')} saved!`);
+    clearBill();updateBillNo();
+    if(drt==='h')renderHist('drp-body');if(mrt==='h')renderHist('mrp-body');
+  }
+}
+
+/* RECEIPT */
+function showReceipt(bill){
+  if(!bill&&!cart.length){alert('No items');return;}
+  const{dv,dt,pay}=getDiscPay();
+  const sub=cart.reduce((s,c)=>s+c.price*c.qty,0);
+  let disc=dt==='pct'?sub*(dv/100):dv;disc=Math.min(disc,sub);
+  const taxOn=S.taxEnabled!==undefined?S.taxEnabled:(S.tax_enabled||true);
+  const taxRt=S.taxRate||S.tax_rate||0;
+  const tax=taxOn?(sub-disc)*(taxRt/100):0;
+  const grand=sub-disc+tax;
+  const b=bill||{cart,customer:getCust(),tbl:getTable(),pay_mode:pay,no:'---',time:new Date().toISOString(),sub,disc,tax,grand};
+  const cur=S.currency||'₹',ln='─'.repeat(38);
+  const now=new Date(b.time||Date.now());
+  const no=b.no==='---'?'---':String(b.no).padStart(3,'0');
+  let r=`${C(S.bizName||S.biz_name||'My Restaurant',38)}\n${C(S.bizPhone||S.biz_phone||'',38)}\n${ln}`;
+  r+=`\nBill: ${S.billPrefix||S.bill_prefix||'INV'}-${no}  |  ${now.toLocaleDateString('en-IN')} ${now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}`;
+  r+=`\nCustomer: ${b.customer}${(b.tbl||b.table)?'  Table: '+(b.tbl||b.table):''}`;
+  r+=`\nPayment: ${b.pay_mode||'Cash'}\n${ln}`;
+  r+=`\n${'ITEM'.padEnd(20)}${'QTY'.padStart(4)}${'RATE'.padStart(7)}${'AMT'.padStart(8)}\n${ln}`;
+  (Array.isArray(b.cart)?b.cart:[]).forEach(c=>{const nm=c.name.length>19?c.name.slice(0,18)+'.':c.name;r+=`\n${nm.padEnd(20)}${String(c.qty).padStart(4)}${(cur+c.price).padStart(7)}${(cur+(c.price*c.qty)).padStart(8)}`;});
+  r+=`\n${ln}\n${'Subtotal'.padEnd(28)}${(cur+parseFloat(b.sub||sub).toFixed(2)).padStart(10)}`;
+  if(parseFloat(b.disc||disc)>0)r+=`\n${'Discount'.padEnd(28)}${('-'+cur+parseFloat(b.disc||disc).toFixed(2)).padStart(10)}`;
+  if(taxOn)r+=`\n${((S.taxName||S.tax_name||'Tax')+' '+taxRt+'%').padEnd(28)}${(cur+parseFloat(b.tax||tax).toFixed(2)).padStart(10)}`;
+  r+=`\n${ln}\n${'TOTAL'.padEnd(28)}${(cur+parseFloat(b.grand||grand).toFixed(2)).padStart(10)}\n${ln}\n${C(S.thankYou||S.thank_you||'Thank you!',38)}`;
+  document.getElementById('rcpt-txt').textContent=r.trim();
+  document.getElementById('rcpt-modal').classList.add('on');
+}
+function C(s,w){if(!s)return'';const p=Math.max(0,Math.floor((w-s.length)/2));return' '.repeat(p)+s;}
+
+/* MOBILE DRAWERS */
+function openMenu(){
+  closeAll();
+  document.getElementById('menu-sheet').classList.add('open');
+  document.getElementById('sheet-ov').classList.add('on');
+  setNav('nb-menu');renderMob();
+}
+function openRD(tab){
+  closeAll();
+  document.getElementById('rdrawer').classList.add('open');
+  document.getElementById('rd-ov').classList.add('on');
+  if(tab==='s')setNav('nb-set');else if(tab==='h')setNav('nb-hist');else setNav('nb-rep');
+  mrTab(tab);
+}
+function closeAll(){
+  document.getElementById('menu-sheet').classList.remove('open');
+  document.getElementById('rdrawer').classList.remove('open');
+  document.getElementById('sheet-ov').classList.remove('on');
+  document.getElementById('rd-ov').classList.remove('on');
+  setNav('nb-bill');
+}
+function setNav(id){['nb-menu','nb-bill','nb-set','nb-hist','nb-rep'].forEach(n=>document.getElementById(n)?.classList.remove('on'));document.getElementById(id)?.classList.add('on');}
+
+/* DESKTOP RIGHT PANEL */
+function drTab(t){drt=t;['s','h','r'].forEach(x=>document.getElementById('drt-'+x)?.classList.toggle('on',x===t));renderPane('drp-body',t);}
+function mrTab(t){mrt=t;['s','h','r'].forEach(x=>document.getElementById('mrt-'+x)?.classList.toggle('on',x===t));renderPane('mrp-body',t);}
+function renderPane(bid,t){if(t==='s')renderSettings(bid);else if(t==='h')renderHist(bid);else renderRep(bid);}
+
+/* SETTINGS */
+function gs(a,b){return S[a]!==undefined?S[a]:(S[b]!==undefined?S[b]:'');}
+function renderSettings(bid){
+  const biz=gs('bizName','biz_name')||'',ph=gs('bizPhone','biz_phone')||'',pfx=gs('billPrefix','bill_prefix')||'INV';
+  const taxOn=S.taxEnabled!==undefined?S.taxEnabled:(S.tax_enabled!==undefined?S.tax_enabled:true);
+  const taxNm=gs('taxName','tax_name')||'GST',taxRt=S.taxRate||S.tax_rate||5,ty=gs('thankYou','thank_you')||'';
+  document.getElementById(bid).innerHTML=`
+    <div class="sg">
+      <div class="sg-ttl">Restaurant Info</div>
+      <div class="srow"><span>Name</span><input class="sinp" value="${biz}" onchange="upS('bizName',this.value)"></div>
+      <div class="srow"><span>Phone</span><input class="sinp" value="${ph}" onchange="upS('bizPhone',this.value)"></div>
+      <div class="srow"><span>Bill Prefix</span><input class="sinp" style="width:90px" value="${pfx}" onchange="upS('billPrefix',this.value)"></div>
+      <div class="srow" style="flex-direction:column;align-items:flex-start;gap:8px">
+        <span style="font-size:13px;font-weight:600;color:var(--t2)">Business Type</span>
+        <div style="background:#fff7ed;border:2px solid #fed7aa;border-radius:10px;padding:10px 14px;font-size:13.5px;font-weight:700;color:#9a3412;width:100%">🍽️ Restaurant (current)</div>
+        <button onclick="switchBizType('supermarket')" style="width:100%;padding:10px;border:2px solid var(--bdr);border-radius:10px;background:#fff;color:var(--t2);font-size:13px;font-weight:700;cursor:pointer;text-align:left">Switch to 🛒 Supermarket →</button>
+      </div>
+    </div>
+    <div class="sg">
+      <div class="sg-ttl">Tax / GST</div>
+      <div class="srow"><span>Enable Tax</span><button class="stog ${taxOn?'on':''}" onclick="toggleTax(this)"></button></div>
+      <div class="srow"><span>Tax Name</span><input class="sinp" style="width:90px" value="${taxNm}" onchange="upS('taxName',this.value)"></div>
+      <div class="srow"><span>Tax Rate %</span><input class="sinp" type="number" style="width:90px" value="${taxRt}" onchange="upS('taxRate',parseFloat(this.value)||0);calc()"></div>
+    </div>
+    <div class="sg">
+      <div class="sg-ttl">Receipt</div>
+      <input class="sinp" style="width:100%;margin-bottom:8px" placeholder="Thank you message" value="${ty}" onchange="upS('thankYou',this.value)">
+    </div>
+    <div class="sg">
+      <div class="sg-ttl">Menu Items</div>
+      <button style="width:100%;padding:14px;border:none;border-radius:12px;background:var(--r2);color:#fff;font-size:15px;font-weight:700;cursor:pointer;touch-action:manipulation" onclick="openManage()">🍽️ Manage Menu Items</button>
+    </div>`;
+}
+function toggleTax(btn){const on=!btn.classList.contains('on');btn.classList.toggle('on',on);S.taxEnabled=on;S.tax_enabled=on;api('PUT','/settings',{taxEnabled:on});calc();}
+async function upS(k,v){S[k]=v;const km={bizName:'biz_name',bizPhone:'biz_phone',taxRate:'tax_rate',taxEnabled:'tax_enabled',taxName:'tax_name',thankYou:'thank_you',billPrefix:'bill_prefix'};if(km[k])S[km[k]]=v;await api('PUT','/settings',{[k]:v});if(k==='bizName')setText('biz-nm',v);}
+
+/* HISTORY */
+async function renderHist(bid){
+  const el=document.getElementById(bid);if(!el)return;
+  el.innerHTML='<div style="padding:20px;text-align:center;color:var(--t3)">Loading…</div>';
+  const[bills,held]=await Promise.all([api('GET','/bills'),api('GET','/held')]);
+  if(!(bills?.length)&&!(held?.length)){el.innerHTML='<div style="padding:32px;text-align:center;color:var(--t3)">No bills yet</div>';return;}
+  let h='';
+  if(held?.length){
+    h+='<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);margin-bottom:9px">📌 On Hold</div>';
+    h+=held.map(hb=>`<div class="hcard" onclick="loadHeld(${hb.id},'${bid}')"><div class="hc-top"><span class="hc-no">HELD</span><span class="hc-amt">${hb.customer}</span></div><div class="hc-meta">${(hb.cart||[]).length} items · Tap to restore</div></div>`).join('');
+    h+='<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);margin:14px 0 9px">📋 Saved</div>';
+  }
+  h+=(bills||[]).map(b=>`<div class="hcard">
+    <div class="hc-top"><span class="hc-no">#${String(b.no).padStart(3,'0')}</span><span class="hc-amt">${S.currency||'₹'}${parseFloat(b.grand).toFixed(2)}</span></div>
+    <div class="hc-meta">${b.customer}${(b.tbl||b.table)?' · Table '+(b.tbl||b.table):''} · ${b.pay_mode||'Cash'}</div>
+    <div class="hc-meta">${new Date(b.time).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
+    <div class="hc-btns">
+      <button class="hcbtn hcbtn-v" onclick="vBill(${b.no})">🧾 View</button>
+      <button class="hcbtn hcbtn-d" onclick="dBill(${b.no},'${bid}')">🗑 Del</button>
+    </div>
+  </div>`).join('');
+  el.innerHTML=h;
+}
+async function vBill(no){const b=await api('GET','/bills/'+no);showReceipt(b);}
+async function dBill(no,bid){if(!confirm(`Delete Bill #${String(no).padStart(3,'0')}?`))return;await api('DELETE','/bills/'+no);toast('🗑 Deleted');renderHist(bid);}
+async function loadHeld(id,bid){
+  const held=await api('GET','/held');
+  const h=held?.find(x=>x.id===id);if(!h)return;
+  if(cart.length&&!confirm('Replace current bill?'))return;
+  cart=[...h.cart];
+  ['d-cust','m-cust'].forEach(id2=>{const el=document.getElementById(id2);if(el)el.value=h.customer!=='Guest'?h.customer:'';});
+  await api('DELETE','/held/'+id);
+  renderOrder();renderDesk();renderMob();calc();updateDot();closeAll();
+}
+
+/* REPORTS */
+function renderRep(bid){
+  const today=new Date().toISOString().slice(0,10);
+  document.getElementById(bid).innerHTML=`
+    <div class="rep-f">
+      <select id="rt-${bid}" onchange="tgRD('${bid}')"><option value="daily">Daily</option><option value="monthly">Monthly</option><option value="custom">Custom</option></select>
+      <input type="date" id="rf-${bid}" value="${today}">
+      <input type="date" id="rt2-${bid}" value="${today}" style="display:none">
+      <button class="rep-go" onclick="loadRep('${bid}')">Go</button>
+    </div>
+    <div id="ro-${bid}"><div style="padding:22px;text-align:center;color:var(--t3)">Click Go</div></div>`;
+  loadRep(bid);
+}
+function tgRD(bid){const t=document.getElementById('rt-'+bid).value;document.getElementById('rf-'+bid).type=t==='monthly'?'month':'date';document.getElementById('rt2-'+bid).style.display=t==='custom'?'':'none';}
+async function loadRep(bid){
+  const t=document.getElementById('rt-'+bid)?.value||'daily',from=document.getElementById('rf-'+bid)?.value||'',to=document.getElementById('rt2-'+bid)?.value||from;
+  const d=await api('GET',`/reports?type=${t}&from=${from}&to=${to}`);
+  const el=document.getElementById('ro-'+bid);if(!el||!d)return;
+  const{summary:sm,itemSales,payBreakdown,dailyTrend}=d;
+  const cur=S.currency||'₹';
+  if(!sm.totalBills){el.innerHTML='<div style="padding:24px;text-align:center;color:var(--t3)">No bills</div>';return;}
+  const mxR=itemSales?.length?Math.max(...itemSales.map(i=>i.revenue)):1;
+  const mxD=dailyTrend?.length?Math.max(...dailyTrend.map(d=>d.revenue)):1;
+  let h=`<div class="kpig">
+    <div class="kpic"><div class="kl">Revenue</div><div class="kv kv-g">${cur}${sm.totalRevenue.toFixed(0)}</div></div>
+    <div class="kpic"><div class="kl">Bills</div><div class="kv">${sm.totalBills}</div></div>
+    <div class="kpic"><div class="kl">Avg Bill</div><div class="kv kv-gold">${cur}${sm.avgBillValue.toFixed(0)}</div></div>
+    <div class="kpic"><div class="kl">Tax</div><div class="kv">${cur}${sm.totalTax.toFixed(0)}</div></div>
+  </div>`;
+  if(dailyTrend?.length>1)h+=`<div class="trend">${dailyTrend.map(d=>`<div class="tc"><div class="tb" style="height:${Math.max(5,(d.revenue/mxD)*100)}%"></div><div class="tl">${d.date.slice(5)}</div></div>`).join('')}</div>`;
+  if(itemSales?.length)h+=`<div style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--t3);margin-bottom:8px">🏆 Top Items</div>`+itemSales.slice(0,8).map(it=>`<div class="ritem"><div style="flex:1"><div style="display:flex;justify-content:space-between;font-weight:700"><span>${it.emoji||''} ${it.name}</span><span style="color:var(--r2)">${cur}${it.revenue.toFixed(0)}</span></div><div style="font-size:12px;color:var(--t3)">${it.qty} sold</div><div class="rbar"><div class="rbar-f" style="width:${Math.round(it.revenue/mxR*100)}%"></div></div></div></div>`).join('');
+  if(payBreakdown?.length)h+=`<div style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--t3);margin:12px 0 8px">💳 Payments</div>`+payBreakdown.map(p=>`<div class="ritem"><span style="font-weight:700">${p.mode}</span><div style="display:flex;gap:10px"><span style="color:var(--t3)">${p.count}</span><span style="font-weight:800">${cur}${p.revenue.toFixed(0)}</span></div></div>`).join('');
+  el.innerHTML=h;
+}
+
+/* MANAGE ITEMS */
+async function openManage(){items=await api('GET','/items')||[];renderMngList();document.getElementById('mng-modal').classList.add('on');}
+function renderMngList(){document.getElementById('mng-list').innerHTML=items.map(it=>`<div class="mng-row"><span class="mr-em">${it.emoji}</span><span class="mr-nm">${it.name}</span><span class="mr-pr">${S.currency||'₹'}${it.price}</span><span class="mr-cat">${it.cat}</span><button onclick="openEdit(${it.id})" style="background:var(--rlt);color:var(--r);border:none;border-radius:8px;padding:6px 10px;font-size:12.5px;font-weight:700;cursor:pointer">✏️</button><button onclick="delIt(${it.id})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:6px 10px;font-size:12.5px;font-weight:700;cursor:pointer">🗑</button></div>`).join('');}
+async function addItem(){
+  const em=document.getElementById('n-em').value||'🍛',nm=document.getElementById('n-nm').value.trim();
+  const pr=parseFloat(document.getElementById('n-pr').value),cat=document.getElementById('n-cat').value;
+  if(!nm||!pr){alert('Enter name and price');return;}
+  const res=await api('POST','/items',{name:nm,price:pr,cat,emoji:em});
+  if(res?.success){items.push(res.item);['n-nm','n-pr','n-em'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});renderMngList();renderCats();renderDesk();renderMob();toast('✅ Item added');}
+}
+function openEdit(id){
+  const it=items.find(i=>i.id===id);if(!it)return;editId=id;
+  const cats=['Food','Drink','Starter','Main','Dessert','Other',...new Set(items.map(i=>i.cat))];
+  document.getElementById('edit-form').innerHTML=`
+    <input id="e-em" value="${it.emoji}" style="max-width:52px;border:2px solid var(--bdr);border-radius:10px;padding:10px;font-size:22px;text-align:center;outline:none">
+    <input id="e-nm" value="${it.name}" style="flex:2;border:2px solid var(--bdr);border-radius:10px;padding:10px 12px;font-size:15px;outline:none;min-width:100px">
+    <input id="e-pr" type="number" value="${it.price}" style="max-width:90px;border:2px solid var(--bdr);border-radius:10px;padding:10px;font-size:15px;outline:none;-webkit-appearance:none">
+    <select id="e-cat" style="border:2px solid var(--bdr);border-radius:10px;padding:10px;font-size:14px;outline:none;-webkit-appearance:none">${[...new Set(cats)].map(c=>`<option ${c===it.cat?'selected':''}>${c}</option>`).join('')}</select>`;
+  document.getElementById('edit-modal').classList.add('on');
+}
+async function saveEdit(){
+  const em=document.getElementById('e-em').value||'🍛',nm=document.getElementById('e-nm').value.trim();
+  const pr=parseFloat(document.getElementById('e-pr').value),cat=document.getElementById('e-cat').value;
+  if(!nm||!pr){alert('Fill all fields');return;}
+  const res=await api('PUT','/items/'+editId,{name:nm,price:pr,cat,emoji:em});
+  if(res?.success){const idx=items.findIndex(i=>i.id===editId);items[idx]=res.item;cart.forEach(c=>{if(c.id===editId){c.name=nm;c.price=pr;c.emoji=em;c.cat=cat;}});renderMngList();renderCats();renderDesk();renderMob();renderOrder();calc();closeM('edit-modal');toast('✅ Updated');}
+}
+async function delIt(id){
+  if(!confirm('Delete this item?'))return;await api('DELETE','/items/'+id);
+  items=items.filter(i=>i.id!==id);cart=cart.filter(c=>c.id!==id);
+  renderMngList();renderCats();renderDesk();renderMob();renderOrder();calc();toast('🗑 Deleted');
+}
+function goImport(){window.location.href='/bulk-import.html?type=items&returnTo='+encodeURIComponent(window.location.pathname);}
+
+// Swipe down to close sheet
+let shY=0;
+document.addEventListener('touchstart',e=>{if(document.getElementById('menu-sheet')?.classList.contains('open'))shY=e.touches[0].clientY;},{passive:true});
+document.addEventListener('touchend',e=>{if(document.getElementById('menu-sheet')?.classList.contains('open')&&e.changedTouches[0].clientY-shY>100)closeAll();},{passive:true});
+
+async function switchBizType(type) {
+  if (!confirm('Switch to ' + (type==='supermarket'?'Supermarket 🛒':'Restaurant 🍽️') + '? You will be redirected to the other app.')) return;
+  await api('PUT', '/settings', { bizType: type });
+  toast('✅ Switched! Redirecting…');
+  setTimeout(() => { window.location.href = type === 'supermarket' ? '/supermarket.html' : '/restaurant.html'; }, 1000);
+}
+
+init();
+</script>
+</body>
+</html>
